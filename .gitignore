@@ -1,0 +1,4 @@
+*.o
+myCanal
+.DS_Store
+./build/*
