@@ -23,23 +23,27 @@ void die(char *s)
 
 int main(int argc, char **argv)
 {
+	Sockaddr_in si_other;
+	Socket s;
+	int i, slen = sizeof(si_other) , recv_len;
+	char buf[BUFLEN];
+	char message[BUFLEN];
+
+
+	//create a UDP socket
+	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+	{
+		die("socket");
+	}
+
 	if(argc <2){
 		printf("Enter the number of the canal: 0 for server, 1 pour client");
 		return -1;
 	}
 	//Si c'est un server
 	if(!strcmp(argv[1],"0")){
-		Sockaddr_in si_me, si_other;
-		Socket s;
-		int i, slen = sizeof(si_other) , recv_len;
-		char buf[BUFLEN];
-
-		//create a UDP socket
-		if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-		{
-			die("socket");
-		}
-
+		Sockaddr_in si_me;
+		
 		// zero out the structure
 		memset((char *) &si_me, 0, sizeof(si_me));
 
@@ -81,16 +85,6 @@ int main(int argc, char **argv)
 	}
 	// Si c'est un client
 	else if(!strcmp(argv[1],"1")){
-		Sockaddr_in si_other;
-		Socket s;
-		int i, slen=sizeof(si_other);
-		char buf[BUFLEN];
-		char message[BUFLEN];
-
-		if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-		{
-			die("socket");
-		}
 
 		memset((char *) &si_other, 0, sizeof(si_other));
 		si_other.sin_family = AF_INET;
