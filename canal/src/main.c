@@ -10,41 +10,26 @@
 #include <unistd.h> // sleep during x s
 #include <signal.h> 
 
-
+#include "server.h"
+#include "structure.h"
 
 #define SERVER "127.0.0.1"
 #define BUFLEN 512  		//Max length of buffer
 #define PORT 8888   		//The port on which to listen for incoming data
 #define MaxMessage 512		//Maximum messages that we can receive simultaneously
 
+#define DEBUG
+
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;
 
-typedef struct listeChaine {
-	int num;
-	struct listeChaine* next;
-} listeChaine;
 
-// Structure for the Tab to get informations about the message stored in this element
-typedef struct IDMessage {
-	int numMessage; 	// Number of the message 
-	int max;			// The message is composed of max messages to assemble
-	listeChaine list; 	// List of already received package numbers
-	char* buffer;		// Where the message is stored
-} IDMessage;
-
-// En tete of a udp package
-typedef struct enTete {
-	int numMessage;		// Number of the message 
-	int numSequence; 	// number of the package in the message
-	int maxSequence; 	//	The message is composed of maxSequence messages to assemble
-} enTete;
 
 
 
 IDMessage Tab[MaxMessage];	// Array of temporarily stored messages
 
-void die(char *s)
+void bug(char *s)
 {
 	perror(s);
 	exit(1);
@@ -65,24 +50,18 @@ Wait for the message "initialization" and reply "initialization".
 int handshakeServer(Socket s) {
 	Sockaddr_in si_other;
 	char* message = "initialization";
-	int recv_len, slen=10;  // Initialization at 10, do not understand why it does not work otherwise
+	unsigned int recv_len, slen=10;  // Initialization at 10, do not understand why it does not work otherwise
 	char buf[BUFLEN];
 	memset(buf,'\0', BUFLEN);
 
 	while (strcmp(buf, message)) {
-		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1)
-		{
-			die("recvfrom()");
-		}
+		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
 	}
 	printf("The server received the message : %s\n", buf);
 	//printf("oo, %d, %d", slen, sizeof(si_other));
 	
 	//now reply the client with "initialization"
-	if (sendto(s, message, sizeof(message), 0, (struct sockaddr*) &si_other, sizeof(si_other)) == -1)
-	{
-		die("sendto()");
-	}
+	if (sendto(s, message, sizeof(message), 0, (struct sockaddr*) &si_other, sizeof(si_other)) == -1) bug("sendto()");
 	return 0;
 }
 
@@ -93,7 +72,7 @@ Send the message "initialization" and wait for the answer "initialization".
 int handshakeClient(Socket s, Sockaddr_in* si_other_p) {
 	Sockaddr_in si_garbage;
 	char* message = "initialization";
-	int recv_len, slen;
+	unsigned int recv_len, slen;
 	char buf[BUFLEN];
 	memset(buf,'\0', BUFLEN);
 
@@ -103,23 +82,16 @@ int handshakeClient(Socket s, Sockaddr_in* si_other_p) {
 	// tv.tv_usec = 0;  // Not init'ing this can cause strange errors
 
 	// if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval))) {
-	// 	die("setsockopt()");
+	// 	bug("setsockopt()");
 	// }
 	// signal(EAGAIN, handle_alarm );
 	// alarm(1);
 
 	while (strcmp(buf, message)) {
-		if (sendto(s, message, strlen(message), 0, (struct sockaddr*) si_other_p, sizeof(*si_other_p)) == -1)
-		{
-			die("sendto()");
-		}
+		if (sendto(s, message, strlen(message), 0, (struct sockaddr*) si_other_p, sizeof(*si_other_p)) == -1) bug("sendto()");
 		printf("Trying to connect ... \n");
 
-		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_garbage, &slen)) == -1)
-		{
-			die("recvfrom()");
-		}
-		printf("lol");
+		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_garbage, &slen)) == -1) bug("recvfrom()");
 	}
 	printf("The server received the message : %s \nThe communication can now begin\n", buf);
 	//printf("oo, %d, %d", slen, sizeof(si_other));
@@ -130,110 +102,19 @@ int handshakeClient(Socket s, Sockaddr_in* si_other_p) {
 }
 
 
-/*
-Find the message to write the data in. If the message does not exist yes, create it.
-Usually returns the address of the structure where the message is to store.
-Else, return null.
-*/
-IDMessage* findMessage(int RequestNumMessage, int RequestMax) {
-	int i;
-	IDMessage* voidElement;	// pointer to a void element in case the message does not exist yet
-	int voidIsFound = 0;	// bool to know if we have already found a void element
-	for (i=0; i<MaxMessage; i++) {
-		// Trying to find the message entry
-		if (Tab[i].numMessage == RequestNumMessage){
-			return &Tab[i];
-		}
 
-		// Trying to find a void entry
-		if (!voidIsFound){
-			if (Tab[i].numMessage == 0){
-				voidElement = &Tab[i];
-				voidIsFound = 1;
-			}
-		}
-	}
-	if (voidIsFound) {
-		voidElement->numMessage = RequestNumMessage;
-		voidElement->max = RequestMax;
-		voidElement->buffer = (char*) calloc(RequestMax * MaxMessage, sizeof(char));
-		return &Tab[i];
-	}
-	return NULL;
-}
-
-
-// Just init the Tab with default values. 0 is not an element, it is a default value.
-void InitTab(){
-	int i;
-	for (i=1; i<MaxMessage; i++){
-		Tab[i].numMessage = 0;
-		Tab[i].max = 0;
-		listeChaine l = {0, NULL};
-		Tab[i].list = l;
-		Tab[i].buffer = NULL;
-	}
-}
-
-// Add a value to the listeChaine
-void addValue(listeChaine* l, int i){
-	listeChaine newElement;
-	listeChaine* L = l;
-	listeChaine* M = l;
-	newElement.num = i;
-
-	while (M->num < i && M->next != NULL){
-		L = M;
-		M = M->next;
-	}
-	newElement.next = L->next;
-	L->next = &newElement;
-}
-
-// Check that all sequences of the message have been received.
-// return 0 if true, 1 if some misses.
-int checkCompletionMessage(listeChaine* l, int maxSequence) {
-	listeChaine* L = l;
-	int cnt = 0
-	while (L->next != NULL) {
-		if (cnt != L->num) {
-			return 1;
-		}
-		cnt ++;
-		L = L->next;
-	}
-	if (cnt == maxSequence) {
-		return 0;
-	} else {
-		return 1;
-	}
-
-
-}
-
-
-// Clean an element of Tab
-void freeTabElement(IDMessage* messageAddress){
-	messageAddress->numMessage = 0;
-	messageAddress->max = 0;
-	free(messageAddress->buffer);
-	messageAddress->buffer = NULL;
-}
 
 int main(int argc, char **argv)
 {
 	Sockaddr_in si_other;
 	Socket s;
-	int slen = sizeof(si_other) , recv_len;
+	unsigned int slen = sizeof(si_other) , recv_len;
 	char buf[BUFLEN];
 	char message[BUFLEN];
 
 
 	//create a UDP socket
-	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-	{
-		die("socket");
-	}
+	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) bug("socket");
 
 	if(argc <2){
 		printf("Enter the number of the canal: 0 for server, 1 pour client");
@@ -242,7 +123,8 @@ int main(int argc, char **argv)
 	//Si c'est un server
 	if(!strcmp(argv[1],"0")){
 		Sockaddr_in si_me;
-		IDMessage* pointerMessage, pointerBuffer;
+		IDMessage* pointerMessage;
+		char* pointerBuffer;
 
 		// zero out the structure
 		memset((char *) &si_me, 0, sizeof(si_me));
@@ -252,17 +134,13 @@ int main(int argc, char **argv)
 		si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
 		//bind socket to port
-		if( bind(s , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1)
-		{
-			die("bind");
-		}
+		if( bind(s , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) bug("bind");
 
 		// Wait for the initialization message
-		handshakeServer(s);
+		//handshakeServer(s);
 
 		// Init the Tab
 		InitTab();
-
 
 		//keep listening for data
 		while(1)
@@ -273,16 +151,13 @@ int main(int argc, char **argv)
 			//Il faudra ici, bien vider le buffer = écrire un '\0' au début
 			//Sinon quand le message est plus petite que l'ancien, on voit encore l'ancien
 			//try to receive some data, this is a blocking call
-			if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1)
-			{
-				die("recvfrom()");
-			}
+			if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
 
 			pointerMessage = findMessage(((enTete*) buf)->numMessage, ((enTete*) buf)->maxSequence);
-			pointerBuffer = (((enTete*) buf)->numSequence) * sizeof(char);
+			pointerBuffer = (char*) (((enTete*) buf)->numSequence * sizeof(char));
 			memcpy(pointerBuffer, buf, BUFLEN);
 			addValue(&(pointerMessage->list), ((enTete*) buf)->numSequence);
-			checkCompletionMessage();
+			checkCompletionMessage(&(pointerMessage->list), pointerMessage->maxSequence);
 
 			
 
@@ -291,16 +166,8 @@ int main(int argc, char **argv)
 			printf("Data: %s\n" , buf);
 
 			//now reply the client with the same data
-			if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1)
-			{
-				die("sendto()");
-			}
-			printf("avant");
-			sleep(3);
-			printf("avant");
-			sleep(3);
-			
-			printf("apres");
+			if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+			memset(buf,'\0', BUFLEN);
 		}
 		close(s);
 	}
@@ -317,41 +184,35 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 		// Init the connection by sending a message and waiting for an answer
-		handshakeClient(s, &si_other);
+		//handshakeClient(s, &si_other);
 
-		while(1)
-		{
-			pid_t receive_pid;
-			int receive_status;
-			receive_pid = fork();
-			if(receive_pid == 0){
-				// Processus de reception des messages
+		pid_t receive_pid;
+		int receive_status;
+		receive_pid = fork();
+		// Processus de reception des messages
+		if(receive_pid == 0){
 
-			}else{
+		}else{  // Processus d'envoi des messages
+			while(1){
+#ifdef DEBUG
 				printf("Enter message : ");
 				fgets(message, BUFLEN, stdin);
 
+#endif
+				printf("Le fils (%d) a lu : %s \n", getpid(), message);
 				//send the message
-				if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
-				{
-					die("sendto()");
-				}
+				if (sendto(s, message, strlen(message), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 
 				//receive a reply and print it
 				//clear the buffer by filling null, it might have previously received data
 				memset(buf,'\0', BUFLEN);
 				//try to receive some data, this is a blocking call
-				if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
-				{
-					die("recvfrom()");
-				}
-
+				if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1) bug("recvfrom()");
 				puts(buf);
 			}
-			close(s);
-			
-			wait(&receive_status);
 		}
+		close(s);
+		wait(&receive_status);
 	}
 	return 0;
 }

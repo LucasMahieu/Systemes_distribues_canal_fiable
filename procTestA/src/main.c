@@ -44,16 +44,32 @@ int main(int argc, char **argv)
 
 	/* processus fils */
 	if (canal_pid == 0){
-		printf("Fermeture de l'entrée du tube A to Canal dans le proc fils (pid = %d)\n", getpid());
+		// On remplace le stdout du proc par le pipe
+		//close(1);
+		//dup(tube_CanaltoA[1]);
+		// On remplace le stdin du proc par le pipe
+		close(0);
+		dup(tube_AtoCanal[0]);
+
 		close(tube_AtoCanal[1]);
-		printf("Fermeture de la sortie du tube Canal to A dans le proc fils (pid = %d)\n", getpid());
 		close(tube_CanaltoA[0]);
+#ifdef DEBUG
+		printf("Fermeture de l'entrée du tube A to Canal dans le proc fils (pid = %d)\n", getpid());
+		printf("Fermeture de la sortie du tube Canal to A dans le proc fils (pid = %d)\n", getpid());
+#endif
+		// liste qui servira au execvp
+		char* arg_list[] = {"./myCanal", "1", NULL};
+		// On lance le myCanal
+		execv("myCanal", arg_list);
+		
+		bug("Erreur de execvp myCanal\n");
 
-		read(tube_AtoCanal[0], bufferR, BUFFER_SIZE);
-		printf("Le fils (%d) a lu : %s \n", getpid(), bufferR);
 
-		sprintf(bufferW, "Message du fils (%d) au père: Coucou papounet", getpid());
-		write(tube_CanaltoA[1], bufferW, BUFFER_SIZE);
+		//read(tube_AtoCanal[0], bufferR, BUFFER_SIZE);
+		//printf("Le fils (%d) a lu : %s \n", getpid(), bufferR);
+
+		//sprintf(bufferW, "Message du fils (%d) au père: Coucou papounet", getpid());
+		//write(tube_CanaltoA[1], bufferW, BUFFER_SIZE);
 	/* processus père */
 	} else {
 		char toSendBuffer[MAX_TOSEND_BUFFER];
@@ -74,19 +90,19 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 			sprintf(bufferW, "Message du pére (%d) au fils: Je suis ton pére", getpid());
 #endif
+
+			// fonction send(fd, message, size);
 			write(tube_AtoCanal[1], toSendBuffer, strlen(toSendBuffer));
 
 			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
 			// on pause quelques sec
 			sleep(rand()%10);
 		}
-
-
+		//
 		//read(tube_CanaltoA[0], bufferR, BUFFER_SIZE);
 		//printf("Le père (%d) a lu : %s \n", getpid(), bufferR);
 
 		wait(NULL);
 	}
-
 	return 0;
 }
