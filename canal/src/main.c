@@ -7,10 +7,13 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <unistd.h> // sleep during x s
+
 
 #define SERVER "127.0.0.1"
-#define BUFLEN 512  //Max length of buffer
-#define PORT 8888   //The port on which to listen for incoming data
+#define BUFLEN 512  		//Max length of buffer
+#define BUFDELLEN 2048	 	//Max length buffer for storing messages (and wait for them to complete before delivering them)
+#define PORT 8888   		//The port on which to listen for incoming data
 
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;
@@ -20,12 +23,72 @@ void die(char *s)
 	perror(s);
 	exit(1);
 }
+/*
+Handshake function for the server.
+Wait for the message "initialization" and reply "initialization".
+*/
+int handshakeServer(Socket s) {
+	Sockaddr_in si_other;
+	char* message = "initialization";
+	int recv_len, slen=10;  // Initialization at 10, do not understand why it does not work otherwise
+	char buf[BUFLEN];
+	memset(buf,'\0', BUFLEN);
+
+	while (strcmp(buf, message)) {
+		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1)
+		{
+			die("recvfrom()");
+		}
+	}
+	printf("The server received the message : %s\n", buf);
+	//printf("oo, %d, %d", slen, sizeof(si_other));
+	
+	//now reply the client with "initialization"
+	if (sendto(s, message, sizeof(message), 0, (struct sockaddr*) &si_other, sizeof(si_other)) == -1)
+	{
+		die("sendto()");
+	}
+	return 0;
+}
+
+/*
+Handshake function for the client.
+Send the message "initialization" and wait for the answer "initialization".
+*/
+int handshakeClient(Socket s, Sockaddr_in* si_other_p) {
+	Sockaddr_in si_garbage;
+	char* message = "initialization";
+	int recv_len, slen;
+	char buf[BUFLEN];
+	memset(buf,'\0', BUFLEN);
+
+	while (strcmp(buf, message)) {
+		if (sendto(s, message, strlen(message), 0, (struct sockaddr*) si_other_p, sizeof(*si_other_p)) == -1)
+		{
+			die("sendto()");
+		}
+		printf("Trying to connect ... \n");
+		// sleep(1);		//sleep function does not work
+
+		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_garbage, &slen)) == -1)
+		{
+			die("recvfrom()");
+		}
+	}
+	printf("The server received the message : %s \nThe communication can now begin\n", buf);
+	//printf("oo, %d, %d", slen, sizeof(si_other));
+	
+	//now reply the client with "initialization"
+
+	return 0;
+}
+
 
 int main(int argc, char **argv)
 {
 	Sockaddr_in si_other;
 	Socket s;
-	int i, slen = sizeof(si_other) , recv_len;
+	int slen = sizeof(si_other) , recv_len;
 	char buf[BUFLEN];
 	char message[BUFLEN];
 
@@ -43,7 +106,8 @@ int main(int argc, char **argv)
 	//Si c'est un server
 	if(!strcmp(argv[1],"0")){
 		Sockaddr_in si_me;
-		
+		char delBuf[BUFDELLEN]; // Buffer for storing all the messages before delivering them
+
 		// zero out the structure
 		memset((char *) &si_me, 0, sizeof(si_me));
 
@@ -56,6 +120,10 @@ int main(int argc, char **argv)
 		{
 			die("bind");
 		}
+
+		// Wait for the initialization message
+		handshakeServer(s);
+
 
 		//keep listening for data
 		while(1)
@@ -95,6 +163,8 @@ int main(int argc, char **argv)
 			fprintf(stderr, "inet_aton() failed\n");
 			exit(1);
 		}
+		// Init the connection by sending a message and waiting for an answer
+		handshakeClient(s, &si_other);
 
 		while(1)
 		{
