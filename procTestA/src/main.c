@@ -14,8 +14,7 @@
 // Pour le seed de random
 #include	<time.h>
 
-#define BUFFER_SIZE 256
-#define MAX_TOSEND_BUFFER 1024
+#define MAX_TOSEND_BUFFER 2048
 
 #define DEBUG
 
@@ -32,7 +31,6 @@ int main(int argc, char **argv)
 	// Il faut deux tube pour communiquer dans les 2 sens
 	int tube_AtoCanal[2];
 	int tube_CanaltoA[2];
-	char bufferR[256], bufferW[256];
 	puts("Création d'un tube\n");
 	/* pipe 1*/
 	if (pipe(tube_AtoCanal) != 0) bug("Erreur dans pipe 1 \n");
@@ -42,17 +40,15 @@ int main(int argc, char **argv)
 	canal_pid = fork();    
 	if (canal_pid == -1) bug("Erreur dans fork \n");
 
-	/* processus fils */
+	// processus fils : Créer le Canal de com avec A
 	if (canal_pid == 0){
-		// On remplace le stdout du proc par le pipe
-		//close(1);
-		//dup(tube_CanaltoA[1]);
 		// On remplace le stdin du proc par le pipe
-		close(0);
-		dup(tube_AtoCanal[0]);
+		dup2(tube_AtoCanal[0],0);
 
+		// on ferme les 3 pipes inutile
 		close(tube_AtoCanal[1]);
 		close(tube_CanaltoA[0]);
+		close(tube_CanaltoA[1]);
 #ifdef DEBUG
 		printf("Fermeture de l'entrée du tube A to Canal dans le proc fils (pid = %d)\n", getpid());
 		printf("Fermeture de la sortie du tube Canal to A dans le proc fils (pid = %d)\n", getpid());
@@ -64,44 +60,44 @@ int main(int argc, char **argv)
 		
 		bug("Erreur de execvp myCanal\n");
 
-
 		//read(tube_AtoCanal[0], bufferR, BUFFER_SIZE);
 		//printf("Le fils (%d) a lu : %s \n", getpid(), bufferR);
 
 		//sprintf(bufferW, "Message du fils (%d) au père: Coucou papounet", getpid());
 		//write(tube_CanaltoA[1], bufferW, BUFFER_SIZE);
-	/* processus père */
+	// processus père : C'est le processus A qui envoie des msg au canal (son fils)
 	} else {
 		char toSendBuffer[MAX_TOSEND_BUFFER];
 		srand(time(NULL));
 		FILE* fIN;
 		if((fIN = fopen("procTestA/data/toSend.txt","r"))==NULL) bug("Erreur dans fopen fIN\n");
 
+		FILE* fOUT;
+		if((fOUT=fdopen(tube_AtoCanal[1],"w"))==NULL) bug("Erreur fOUT prog A");
+
+		// Fermeture des fd inutile
 		close(tube_AtoCanal[0]);
 		close(tube_CanaltoA[1]);
+		close(tube_CanaltoA[0]);
 #ifdef DEBUG
 		printf("Fermeture de la sortie du tube A to Canal dans le proc pere (pid = %d)\n", getpid());
 		printf("Fermeture de l'entrée du tube Canal to A dans le proc pere (pid = %d)\n", getpid());
 #endif
-
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
 		sleep(5);
 		while( fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN) ){
 #ifdef DEBUG
-			sprintf(bufferW, "Message du pére (%d) au fils: Je suis ton pére", getpid());
+			printf("A envoie le msg suivant à B: %s\n",toSendBuffer);
 #endif
-
-			// fonction send(fd, message, size);
-			write(tube_AtoCanal[1], toSendBuffer, strlen(toSendBuffer));
+			// fonction que doit appeler A pour envoyer des données à B par le canal
+			fwrite(toSendBuffer, 1, strlen(toSendBuffer), fOUT);
 
 			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
 			// on pause quelques sec
-			sleep(rand()%10);
+			sleep(rand()%3);
 		}
-		//
-		//read(tube_CanaltoA[0], bufferR, BUFFER_SIZE);
-		//printf("Le père (%d) a lu : %s \n", getpid(), bufferR);
-
+		fclose(fIN);
+		fclose(fOUT);
 		wait(NULL);
 	}
 	return 0;

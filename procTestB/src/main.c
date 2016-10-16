@@ -11,69 +11,80 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+// Pour le seed de random
+#include	<time.h>
 
-#define BUFFER_SIZE 256
+#define MAX_RECEIVED_BUFFER 2048
 
+#define DEBUG
+
+void bug(char* msg){
+	fprintf(stderr, "%s",msg);
+	exit(1);
+}
 
 int main(int argc, char **argv)
 {
-
 	pid_t canal_pid;
 	// Tube de communication entre les 2 processus
 	// Il faut deux tube pour communiquer dans les 2 sens
-	int tube_AtoCanal[2];
-	int tube_CanaltoA[2];
-	char bufferR[256], bufferW[256];
+	int tube_BtoCanal[2];
+	int tube_CanaltoB[2];
 	puts("Création d'un tube\n");
 	/* pipe 1*/
-	if (pipe(tube_AtoCanal) != 0)
-	{
-		{
-			fprintf(stderr, "Erreur dans pipe 1 \n");
-			exit(1);
-		}
-	}
+	if (pipe(tube_BtoCanal) != 0) bug("Erreur dans pipe 1 \n");
 	/* pipe 2*/
-	if (pipe(tube_CanaltoA) != 0)
-	{
-		{
-			fprintf(stderr, "Erreur dans pipe 2 \n");
-			exit(1);
-		}
-	}
+	if (pipe(tube_CanaltoB) != 0) bug("Erreur dans pipe 2 \n");
+
 	canal_pid = fork();    
-	if (canal_pid == -1)
-	{
-		fprintf(stderr, "Erreur dans fork \n");
-		exit(1);
-	}
-	/* processus fils */
+	if (canal_pid == -1) bug("Erreur dans fork \n");
+
+	// processus fils: lance le canal pour pouvoir recevoir des données
 	if (canal_pid == 0){
-		printf("Fermeture de l'entrée du tube A to Canal dans le proc fils (pid = %d)\n", getpid());
-		close(tube_AtoCanal[1]);
-		printf("Fermeture de la sortie du tube Canal to A dans le proc fils (pid = %d)\n", getpid());
-		close(tube_CanaltoA[0]);
+		// On remplace le stdout du proc par le pipe avec B
+		dup2(tube_CanaltoB[1],1);
 
-		read(tube_AtoCanal[0], bufferR, BUFFER_SIZE);
-		printf("Le fils (%d) a lu : %s \n", getpid(), bufferR);
+		// On ferme les 3 fd dont on a pas besoin
+		close(tube_BtoCanal[1]);
+		close(tube_CanaltoB[0]);
+		close(tube_BtoCanal[0]);
+		
+		// liste qui servira au execvp
+		char* arg_list[] = {"./myCanal", "0", NULL};
+		// On lance le myCanal
+		execv("myCanal", arg_list);
+		
+		bug("Erreur de execvp myCanal\n");
 
-		sprintf(bufferW, "Message du fils (%d) au père: Coucou papounet", getpid());
-		write(tube_CanaltoA[1], bufferW, BUFFER_SIZE);
+	// processus père : recoie des données du canal et les écrit dans un fichier
 	} else {
-		printf("Fermeture de la sortie du tube A to Canal dans le proc pere (pid = %d)\n", getpid());
-		close(tube_AtoCanal[0]);
-		printf("Fermeture de l'entrée du tube Canal to A dans le proc pere (pid = %d)\n", getpid());
-		close(tube_CanaltoA[1]);
+		char receiveBuffer[MAX_RECEIVED_BUFFER];
+		FILE* fOUT;
+		if((fOUT = fopen("procTestB/data/receive.txt","w"))==NULL) bug("Erreur dans fopen fOUT\n");
 
-		sprintf(bufferW, "Message du pére (%d) au fils: Je suis ton pére", getpid());
-		write(tube_AtoCanal[1], bufferW, BUFFER_SIZE);
-
-
-		read(tube_CanaltoA[0], bufferR, BUFFER_SIZE);
-		printf("Le père (%d) a lu : %s \n", getpid(), bufferR);
-
+		// Ferme les pipe inutiles
+		close(tube_BtoCanal[0]);
+		close(tube_CanaltoB[1]);
+		close(tube_BtoCanal[1]);
+#ifdef DEBUG
+		printf("Fermeture de la sortie du tube B to Canal dans le proc pere (pid = %d)\n", getpid());
+		printf("Fermeture de l'entrée du tube Canal to B dans le proc pere (pid = %d)\n\n", getpid());
+#endif
+		// Petit dodo pour être sur que tout le monde soit bien près pour le test
+		sleep(1);
+		while(1){
+			// le canal va faire un déliver et on recoie les données avec read
+			read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
+#ifdef DEBUG
+			printf("B a reçu de A : %s \n",receiveBuffer);
+#endif
+			fwrite(receiveBuffer,sizeof(*receiveBuffer),strlen(receiveBuffer), fOUT);
+			fflush(fOUT);
+			memset(receiveBuffer,'\0', MAX_RECEIVED_BUFFER);
+			
+		}
+		fclose(fOUT);
 		wait(NULL);
 	}
-
 	return 0;
 }
