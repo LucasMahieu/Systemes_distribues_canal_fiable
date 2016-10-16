@@ -98,27 +98,37 @@ int main(int argc, char **argv)
 
 		while(1)
 		{
-			printf("Enter message : ");
-			gets(message);
+			pid_t receive_pid;
+			int receive_status;
+			receive_pid = fork();
+			if(receive_pid == 0){
+				// Processus de reception des messages
 
-			//send the message
-			if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
-			{
-				die("sendto()");
+			}else{
+				printf("Enter message : ");
+				gets(message);
+
+				//send the message
+				if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
+				{
+					die("sendto()");
+				}
+
+				//receive a reply and print it
+				//clear the buffer by filling null, it might have previously received data
+				memset(buf,'\0', BUFLEN);
+				//try to receive some data, this is a blocking call
+				if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
+				{
+					die("recvfrom()");
+				}
+
+				puts(buf);
 			}
-
-			//receive a reply and print it
-			//clear the buffer by filling null, it might have previously received data
-			memset(buf,'\0', BUFLEN);
-			//try to receive some data, this is a blocking call
-			if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
-			{
-				die("recvfrom()");
-			}
-
-			puts(buf);
+			close(s);
+			
+			wait(&receive_status);
 		}
-		close(s);
 	}
 	return 0;
 }
