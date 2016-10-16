@@ -14,12 +14,35 @@
 
 #define SERVER "127.0.0.1"
 #define BUFLEN 512  		//Max length of buffer
-#define BUFDELLEN 2048	 	//Maximum messages that we can receive simultaneously
 #define PORT 8888   		//The port on which to listen for incoming data
-
+#define MaxMessage 512		//Maximum messages that we can receive simultaneously
 
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;
+
+typedef struct listeChaine {
+	int num;
+	struct listeChaine* next;
+} listeChaine;
+
+// Structure for the Tab to get informations about the message stored in this element
+typedef struct IDMessage {
+	int numMessage; 	// Number of the message 
+	int max;			// The message is composed of max messages to assemble
+	listeChaine list; 	// List of already received package numbers
+	char* buffer;		// Where the message is stored
+} IDMessage;
+
+// En tete of a udp package
+typedef struct enTete {
+	int numMessage;		// Number of the message 
+	int numSequence; 	// number of the package in the message
+	int maxSequence; 	//	The message is composed of maxSequence messages to assemble
+} enTete;
+
+
+
+IDMessage Tab[MaxMessage];	// Array of temporarily stored messages
 
 void die(char *s)
 {
@@ -107,11 +130,95 @@ int handshakeClient(Socket s, Sockaddr_in* si_other_p) {
 }
 
 
+/*
+Find the message to write the data in. If the message does not exist yes, create it.
+Usually returns the address of the structure where the message is to store.
+Else, return null.
+*/
+IDMessage* findMessage(int RequestNumMessage, int RequestMax) {
+	int i;
+	IDMessage* voidElement;	// pointer to a void element in case the message does not exist yet
+	int voidIsFound = 0;	// bool to know if we have already found a void element
+	for (i=0; i<MaxMessage; i++) {
+		// Trying to find the message entry
+		if (Tab[i].numMessage == RequestNumMessage){
+			return &Tab[i];
+		}
 
-void addNewMessage() {
+		// Trying to find a void entry
+		if (!voidIsFound){
+			if (Tab[i].numMessage == 0){
+				voidElement = &Tab[i];
+				voidIsFound = 1;
+			}
+		}
+	}
+	if (voidIsFound) {
+		voidElement->numMessage = RequestNumMessage;
+		voidElement->max = RequestMax;
+		voidElement->buffer = (char*) calloc(RequestMax * MaxMessage, sizeof(char));
+		return &Tab[i];
+	}
+	return NULL;
+}
+
+
+// Just init the Tab with default values. 0 is not an element, it is a default value.
+void InitTab(){
+	int i;
+	for (i=1; i<MaxMessage; i++){
+		Tab[i].numMessage = 0;
+		Tab[i].max = 0;
+		listeChaine l = {0, NULL};
+		Tab[i].list = l;
+		Tab[i].buffer = NULL;
+	}
+}
+
+// Add a value to the listeChaine
+void addValue(listeChaine* l, int i){
+	listeChaine newElement;
+	listeChaine* L = l;
+	listeChaine* M = l;
+	newElement.num = i;
+
+	while (M->num < i && M->next != NULL){
+		L = M;
+		M = M->next;
+	}
+	newElement.next = L->next;
+	L->next = &newElement;
+}
+
+// Check that all sequences of the message have been received.
+// return 0 if true, 1 if some misses.
+int checkCompletionMessage(listeChaine* l, int maxSequence) {
+	listeChaine* L = l;
+	int cnt = 0
+	while (L->next != NULL) {
+		if (cnt != L->num) {
+			return 1;
+		}
+		cnt ++;
+		L = L->next;
+	}
+	if (cnt == maxSequence) {
+		return 0;
+	} else {
+		return 1;
+	}
+
 
 }
 
+
+// Clean an element of Tab
+void freeTabElement(IDMessage* messageAddress){
+	messageAddress->numMessage = 0;
+	messageAddress->max = 0;
+	free(messageAddress->buffer);
+	messageAddress->buffer = NULL;
+}
 
 int main(int argc, char **argv)
 {
@@ -135,7 +242,7 @@ int main(int argc, char **argv)
 	//Si c'est un server
 	if(!strcmp(argv[1],"0")){
 		Sockaddr_in si_me;
-		char delBuf[BUFDELLEN]; // Buffer for storing all the messages before delivering them
+		IDMessage* pointerMessage, pointerBuffer;
 
 		// zero out the structure
 		memset((char *) &si_me, 0, sizeof(si_me));
@@ -153,6 +260,9 @@ int main(int argc, char **argv)
 		// Wait for the initialization message
 		handshakeServer(s);
 
+		// Init the Tab
+		InitTab();
+
 
 		//keep listening for data
 		while(1)
@@ -168,6 +278,14 @@ int main(int argc, char **argv)
 				die("recvfrom()");
 			}
 
+			pointerMessage = findMessage(((enTete*) buf)->numMessage, ((enTete*) buf)->maxSequence);
+			pointerBuffer = (((enTete*) buf)->numSequence) * sizeof(char);
+			memcpy(pointerBuffer, buf, BUFLEN);
+			addValue(&(pointerMessage->list), ((enTete*) buf)->numSequence);
+			checkCompletionMessage();
+
+			
+
 			//print details of the client/peer and the data received
 			printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
 			printf("Data: %s\n" , buf);
@@ -177,6 +295,12 @@ int main(int argc, char **argv)
 			{
 				die("sendto()");
 			}
+			printf("avant");
+			sleep(3);
+			printf("avant");
+			sleep(3);
+			
+			printf("apres");
 		}
 		close(s);
 	}
@@ -205,7 +329,7 @@ int main(int argc, char **argv)
 
 			}else{
 				printf("Enter message : ");
-				gets(message);
+				fgets(message, BUFLEN, stdin);
 
 				//send the message
 				if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
