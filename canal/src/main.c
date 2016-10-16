@@ -115,23 +115,27 @@ void addNewMessage() {
 
 int main(int argc, char **argv)
 {
+	Sockaddr_in si_other;
+	Socket s;
+	int slen = sizeof(si_other) , recv_len;
+	char buf[BUFLEN];
+	char message[BUFLEN];
+
+
+	//create a UDP socket
+	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+	{
+		die("socket");
+	}
+
 	if(argc <2){
 		printf("Enter the number of the canal: 0 for server, 1 pour client");
 		return -1;
 	}
 	//Si c'est un server
 	if(!strcmp(argv[1],"0")){
-		Sockaddr_in si_me, si_other;
-		Socket s;
-		int i, slen = sizeof(si_other) , recv_len;
-		char buf[BUFLEN];
-		
-
-		//create a UDP socket
-		if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-		{
-			die("socket");
-		}
+		Sockaddr_in si_me;
+		char delBuf[BUFDELLEN]; // Buffer for storing all the messages before delivering them
 
 		// zero out the structure
 		memset((char *) &si_me, 0, sizeof(si_me));
@@ -178,16 +182,6 @@ int main(int argc, char **argv)
 	}
 	// Si c'est un client
 	else if(!strcmp(argv[1],"1")){
-		Sockaddr_in si_other;
-		Socket s;
-		int i, slen=sizeof(si_other);
-		char buf[BUFLEN];
-		char message[BUFLEN];
-
-		if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-		{
-			die("socket");
-		}
 
 		memset((char *) &si_other, 0, sizeof(si_other));
 		si_other.sin_family = AF_INET;
@@ -203,27 +197,37 @@ int main(int argc, char **argv)
 
 		while(1)
 		{
-			printf("Enter message : ");
-			gets(message);
+			pid_t receive_pid;
+			int receive_status;
+			receive_pid = fork();
+			if(receive_pid == 0){
+				// Processus de reception des messages
 
-			//send the message
-			if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
-			{
-				die("sendto()");
+			}else{
+				printf("Enter message : ");
+				gets(message);
+
+				//send the message
+				if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
+				{
+					die("sendto()");
+				}
+
+				//receive a reply and print it
+				//clear the buffer by filling null, it might have previously received data
+				memset(buf,'\0', BUFLEN);
+				//try to receive some data, this is a blocking call
+				if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
+				{
+					die("recvfrom()");
+				}
+
+				puts(buf);
 			}
-
-			//receive a reply and print it
-			//clear the buffer by filling null, it might have previously received data
-			memset(buf,'\0', BUFLEN);
-			//try to receive some data, this is a blocking call
-			if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
-			{
-				die("recvfrom()");
-			}
-
-			puts(buf);
+			close(s);
+			
+			wait(&receive_status);
 		}
-		close(s);
 	}
 	return 0;
 }

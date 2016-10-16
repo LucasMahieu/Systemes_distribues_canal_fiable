@@ -1,4 +1,7 @@
 *.o
 myCanal
+myProcTest
+myProcTestA
+myProcTestB
 .DS_Store
-./build/*
+
