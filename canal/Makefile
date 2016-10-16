@@ -17,17 +17,20 @@ all: $(PROG)
 
 exe: $(PROG)
 	./$(PROG)
+
+myCanal: 
+	@$(CC) $(SRC) -o $@ $(LDFLAGS)
 	
-myCanal: $(BUILD_DIR)main.o
-	@$(CC) -o $@ $^ $(LDFLAGS)
+# myCanal: $(BUILD_DIR)main.o
+# 	@$(CC) -o $@ $^ $(LDFLAGS)
 
-$(BUILD_DIR)main.o: $(SRC_DIR)main.c $(HEADERS)
-	@$(CC) -o $@ -c $< $(CFLAGS) 
+# $(BUILD_DIR)main.o: $(SRC_DIR)main.c $(HEADERS)
+# 	@$(CC) -o $@ -c $< $(CFLAGS) 
 
-$(BUILD_DIR)%.o: %.c $(HEADERS)
-	@$(CC) -o $@ -c $< $(CFLAGS)
+# $(BUILD_DIR)%.o: %.c $(HEADERS)
+# 	@$(CC) -o $@ -c $< $(CFLAGS)
 
-.PHONY: clean 
+.PHONY: clean, all
 
 clean: 
 	rm -f build/*.o 

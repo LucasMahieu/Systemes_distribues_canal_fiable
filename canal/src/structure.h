@@ -1,3 +1,12 @@
+#include <stdio.h> //printf
+#include <string.h> //memset
+#include <stdlib.h> //exit(0);
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h> // sleep during x s
+#include <signal.h> 
+
 typedef struct listeChaine {
 	int num;
 	struct listeChaine* next;
@@ -17,3 +26,7 @@ typedef struct enTete {
 	int numSequence; 	// number of the package in the message
 	int maxSequence; 	//	The message is composed of maxSequence messages to assemble
 } enTete;
+
+#define BUFLEN 512  		//Max length of buffer
+#define MAXMESSAGE 64		//Maximum messages that we can receive simultaneously
+IDMessage Tab[MAXMESSAGE];	// Array of temporarily stored messages

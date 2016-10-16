@@ -1,46 +1,30 @@
 /*
  * Simple udp server
  */
-#include <stdio.h> //printf
-#include <string.h> //memset
-#include <stdlib.h> //exit(0);
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <unistd.h> // sleep during x s
-#include <signal.h> 
+
+
+#ifndef STRUCTURE
+#include "structure.h"
+#define STRUCTURE
+#endif
 
 #include "server.h"
-#include "structure.h"
 
 #define SERVER "127.0.0.1"
-#define BUFLEN 512  		//Max length of buffer
 #define PORT 8888   		//The port on which to listen for incoming data
-#define MaxMessage 512		//Maximum messages that we can receive simultaneously
 
 #define DEBUG
+
 
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;
 
-
-
-
-
-IDMessage Tab[MaxMessage];	// Array of temporarily stored messages
 
 void bug(char *s)
 {
 	perror(s);
 	exit(1);
 }
-
-
-// Execute this function after x seconds if you call alarm(x)
-
-// void handle_alarm( int sig ) {
-// 	printf("salut");
-// }
 
 
 /*
@@ -111,13 +95,14 @@ int main(int argc, char **argv)
 	unsigned int slen = sizeof(si_other) , recv_len;
 	char buf[BUFLEN];
 	char message[BUFLEN];
+	char paquet[BUFLEN + sizeof(enTete)];
 
 
 	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) bug("socket");
 
 	if(argc <2){
-		printf("Enter the number of the canal: 0 for server, 1 pour client");
+		printf("Enter the number of the canal: 0 for server, 1 pour client\n");
 		return -1;
 	}
 	//Si c'est un server
@@ -142,6 +127,8 @@ int main(int argc, char **argv)
 		// Init the Tab
 		InitTab();
 
+		enTete E;
+		char message[BUFLEN];
 		//keep listening for data
 		while(1)
 		{
@@ -153,18 +140,26 @@ int main(int argc, char **argv)
 			//try to receive some data, this is a blocking call
 			if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
 
-			pointerMessage = findMessage(((enTete*) buf)->numMessage, ((enTete*) buf)->maxSequence);
-			pointerBuffer = (char*) (((enTete*) buf)->numSequence * sizeof(char));
-			memcpy(pointerBuffer, buf, BUFLEN);
-			addValue(&(pointerMessage->list), ((enTete*) buf)->numSequence);
-			checkCompletionMessage(&(pointerMessage->list), pointerMessage->maxSequence);
+			// pointerMessage = findMessage(((enTete*) buf)->numMessage, ((enTete*) buf)->maxSequence);
+			// printf("on est en %x \n", pointerMessage->buffer);
+			// pointerBuffer = (char*) (pointerMessage->buffer + ((enTete*) buf)->numSequence * sizeof(char));
+			// printf("%x, %d, %x\n\n", pointerMessage,((enTete*) buf)->numSequence * sizeof(char), pointerBuffer);
+			// memcpy(pointerBuffer, buf + sizeof(enTete), BUFLEN);
+			// printTab();
+			// addValue(&(pointerMessage->list), ((enTete*) buf)->numSequence);
+			// checkCompletionMessage(&(pointerMessage->list), pointerMessage->maxSequence);
 
 			
 
 			//print details of the client/peer and the data received
 			printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
-			printf("Data: %s\n" , buf);
+			E.numMessage = 	((enTete*)buf)->numMessage;
+			E.numSequence = ((enTete*)buf)->numSequence;
+			E.maxSequence = ((enTete*)buf)->maxSequence;
+			// memcpy(message, buf + sizeof(enTete), BUFLEN);
 
+			printf("En Tête : (%d, %d, %d)\n", E.numMessage, E.numSequence, E.maxSequence);
+			printf("Data : %s\n", buf + sizeof(enTete));
 			//now reply the client with the same data
 			if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 			memset(buf,'\0', BUFLEN);
@@ -193,15 +188,29 @@ int main(int argc, char **argv)
 		if(receive_pid == 0){
 
 		}else{  // Processus d'envoi des messages
+			// En tete de test
+			enTete E;
+			int numMessage = 0;
+			int numSequence = 0;
+			int maxSequence = 1;
+
 			while(1){
 #ifdef DEBUG
 				printf("Enter message : ");
 				fgets(message, BUFLEN, stdin);
 
+				// Fill entete
+				E.numMessage = numMessage;
+				E.numSequence = numSequence;
+				E.maxSequence = maxSequence;
+				memcpy(paquet, &E, sizeof(enTete));
+				memcpy(paquet + sizeof(enTete), message, BUFLEN);
+
 #endif
-				printf("Le fils (%d) a lu : %s \n", getpid(), message);
+				printf("Le fils (%d) a lu : %s \n", getpid(), paquet+sizeof(enTete));
+				printf("L'en tête est : (%d, %d, %d)\n", ((enTete*)paquet)->numMessage, ((enTete*)paquet)->numSequence, ((enTete*)paquet)->maxSequence);
 				//send the message
-				if (sendto(s, message, strlen(message), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+				if (sendto(s, paquet, BUFLEN + sizeof(enTete), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 
 				//receive a reply and print it
 				//clear the buffer by filling null, it might have previously received data
