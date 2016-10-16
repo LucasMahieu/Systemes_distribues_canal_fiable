@@ -8,12 +8,15 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h> // sleep during x s
+#include <signal.h> 
+
 
 
 #define SERVER "127.0.0.1"
 #define BUFLEN 512  		//Max length of buffer
-#define BUFDELLEN 2048	 	//Max length buffer for storing messages (and wait for them to complete before delivering them)
+#define BUFDELLEN 2048	 	//Maximum messages that we can receive simultaneously
 #define PORT 8888   		//The port on which to listen for incoming data
+
 
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;
@@ -23,6 +26,15 @@ void die(char *s)
 	perror(s);
 	exit(1);
 }
+
+
+// Execute this function after x seconds if you call alarm(x)
+
+// void handle_alarm( int sig ) {
+// 	printf("salut");
+// }
+
+
 /*
 Handshake function for the server.
 Wait for the message "initialization" and reply "initialization".
@@ -62,18 +74,29 @@ int handshakeClient(Socket s, Sockaddr_in* si_other_p) {
 	char buf[BUFLEN];
 	memset(buf,'\0', BUFLEN);
 
+	// Set a timeout to wait before resending a connection
+	// struct timeval tv;
+	// tv.tv_sec = 1;  // 1 s timeout
+	// tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+
+	// if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval))) {
+	// 	die("setsockopt()");
+	// }
+	// signal(EAGAIN, handle_alarm );
+	// alarm(1);
+
 	while (strcmp(buf, message)) {
 		if (sendto(s, message, strlen(message), 0, (struct sockaddr*) si_other_p, sizeof(*si_other_p)) == -1)
 		{
 			die("sendto()");
 		}
 		printf("Trying to connect ... \n");
-		// sleep(1);		//sleep function does not work
 
 		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_garbage, &slen)) == -1)
 		{
 			die("recvfrom()");
 		}
+		printf("lol");
 	}
 	printf("The server received the message : %s \nThe communication can now begin\n", buf);
 	//printf("oo, %d, %d", slen, sizeof(si_other));
@@ -81,6 +104,12 @@ int handshakeClient(Socket s, Sockaddr_in* si_other_p) {
 	//now reply the client with "initialization"
 
 	return 0;
+}
+
+
+
+void addNewMessage() {
+
 }
 
 
@@ -96,7 +125,7 @@ int main(int argc, char **argv)
 		Socket s;
 		int i, slen = sizeof(si_other) , recv_len;
 		char buf[BUFLEN];
-		char delBuf[BUFDELLEN]; // Buffer for storing all the messages before delivering them
+		
 
 		//create a UDP socket
 		if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
