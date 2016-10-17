@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <unistd.h> // sleep during x s
 
-#define SERVER "127.0.0.1"
+#define SERVER "129.88.242.115"
 #define BUFLEN 512  		//Max length of buffer
 #define BUFDELLEN 2048	 	//Max length buffer for storing messages (and wait for them to complete before delivering them)
 #define PORT 8888   		//The port on which to listen for incoming data
