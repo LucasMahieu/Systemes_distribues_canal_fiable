@@ -3,6 +3,8 @@
 #include "structure.h"
 
 
+
+
 /*
 Find the message to write the data in. If the message does not exist yes, create it.
 Usually returns the address of the structure where the message is to store.
@@ -81,7 +83,7 @@ void printList(listeChaine* l){
 void printBuffer(char* buf, int max){
 	int i = 0;
 	for (i=0; i<max; i++) {
-		printf("Contenu du buffer en %d : %s\n", i, buf+i*BUFLEN);
+		printf("Contenu du buffer en %d : %s\n", i, buf+i*MAX_BUFLEN);
 	}
 }
 
