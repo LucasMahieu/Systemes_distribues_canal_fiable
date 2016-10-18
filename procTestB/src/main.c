@@ -11,8 +11,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 // Pour le seed de random
-#include	<time.h>
+#include <time.h>
 
 #define MAX_RECEIVED_BUFFER 2048
 
