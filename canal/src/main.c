@@ -13,7 +13,9 @@
 #define SERVER "127.0.0.1"
 #define PORT 8888   		//The port on which to listen for incoming data
 
-#define DEBUG
+#define MAX_BUFLEN 2048
+
+//#define DEBUG
 
 
 typedef struct sockaddr_in Sockaddr_in;
@@ -35,11 +37,11 @@ int handshakeServer(Socket s) {
 	Sockaddr_in si_other;
 	char* message = "initialization";
 	unsigned int recv_len, slen=10;  // Initialization at 10, do not understand why it does not work otherwise
-	char buf[BUFLEN];
-	memset(buf,'\0', BUFLEN);
+	char buf[MAX_BUFLEN];
+	memset(buf,'\0', MAX_BUFLEN);
 
 	while (strcmp(buf, message)) {
-		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
+		if ((recv_len = recvfrom(s, buf, MAX_BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
 	}
 	printf("The server received the message : %s\n", buf);
 	//printf("oo, %d, %d", slen, sizeof(si_other));
@@ -57,8 +59,8 @@ int handshakeClient(Socket s, Sockaddr_in* si_other_p) {
 	Sockaddr_in si_garbage;
 	char* message = "initialization";
 	unsigned int recv_len, slen;
-	char buf[BUFLEN];
-	memset(buf,'\0', BUFLEN);
+	char buf[MAX_BUFLEN];
+	memset(buf,'\0', MAX_BUFLEN);
 
 	// Set a timeout to wait before resending a connection
 	// struct timeval tv;
@@ -75,7 +77,7 @@ int handshakeClient(Socket s, Sockaddr_in* si_other_p) {
 		if (sendto(s, message, strlen(message), 0, (struct sockaddr*) si_other_p, sizeof(*si_other_p)) == -1) bug("sendto()");
 		printf("Trying to connect ... \n");
 
-		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_garbage, &slen)) == -1) bug("recvfrom()");
+		if ((recv_len = recvfrom(s, buf, MAX_BUFLEN, 0, (struct sockaddr *) &si_garbage, &slen)) == -1) bug("recvfrom()");
 	}
 	printf("The server received the message : %s \nThe communication can now begin\n", buf);
 	//printf("oo, %d, %d", slen, sizeof(si_other));
@@ -98,6 +100,7 @@ int main(int argc, char **argv)
 	char paquet[BUFLEN + sizeof(enTete)];
 
 
+
 	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) bug("socket");
 
@@ -105,7 +108,8 @@ int main(int argc, char **argv)
 		printf("Enter the number of the canal: 0 for server, 1 pour client\n");
 		return -1;
 	}
-	//Si c'est un server
+	
+	//Si c'est un server : coté de B par convention
 	if(!strcmp(argv[1],"0")){
 		Sockaddr_in si_me;
 		IDMessage* pointerMessage;
@@ -132,13 +136,14 @@ int main(int argc, char **argv)
 		//keep listening for data
 		while(1)
 		{
+#ifdef DEBUG			
 			printf("Waiting for data...");
 			fflush(stdout);
-
+#endif
 			//Il faudra ici, bien vider le buffer = écrire un '\0' au début
 			//Sinon quand le message est plus petite que l'ancien, on voit encore l'ancien
 			//try to receive some data, this is a blocking call
-			if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
+			if ((recv_len = recvfrom(s, buf, MAX_BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
 
 			// pointerMessage = findMessage(((enTete*) buf)->numMessage, ((enTete*) buf)->maxSequence);
 			// printf("on est en %x \n", pointerMessage->buffer);
@@ -158,35 +163,35 @@ int main(int argc, char **argv)
 			E.maxSequence = ((enTete*)buf)->maxSequence;
 			// memcpy(message, buf + sizeof(enTete), BUFLEN);
 
+
 			printf("En Tête : (%d, %d, %d)\n", E.numMessage, E.numSequence, E.maxSequence);
 			printf("Data : %s\n", buf + sizeof(enTete));
 			//now reply the client with the same data
-			if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
-			memset(buf,'\0', BUFLEN);
+			//if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+			memset(buf,'\0', MAX_BUFLEN);
 		}
 		close(s);
 	}
-	// Si c'est un client
+	// Si c'est un client : il sera du coté de A
 	else if(!strcmp(argv[1],"1")){
 
 		memset((char *) &si_other, 0, sizeof(si_other));
 		si_other.sin_family = AF_INET;
 		si_other.sin_port = htons(PORT);
 
-		if (inet_aton(SERVER , &si_other.sin_addr) == 0) 
-		{
-			fprintf(stderr, "inet_aton() failed\n");
-			exit(1);
-		}
+		if (inet_aton(SERVER , &si_other.sin_addr) == 0) bug("inet_aton() failed\n");
+
 		// Init the connection by sending a message and waiting for an answer
 		//handshakeClient(s, &si_other);
 
-		pid_t receive_pid;
-		int receive_status;
-		receive_pid = fork();
+		pid_t receive_pid=1;
+		//int receive_status;
+		//receive_pid = fork();
 		// Processus de reception des messages
 		if(receive_pid == 0){
-
+			//try to receive some data, this is a blocking call
+			//if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1) bug("recvfrom()");
+			//puts(buf);
 		}else{  // Processus d'envoi des messages
 			// En tete de test
 			enTete E;
@@ -195,6 +200,8 @@ int main(int argc, char **argv)
 			int maxSequence = 1;
 
 			while(1){
+				// Processus A va faire send(m), et gets recoi m
+				fgets(message, MAX_BUFLEN, stdin);
 #ifdef DEBUG
 				printf("Enter message : ");
 				fgets(message, BUFLEN, stdin);
@@ -206,22 +213,18 @@ int main(int argc, char **argv)
 				memcpy(paquet, &E, sizeof(enTete));
 				memcpy(paquet + sizeof(enTete), message, BUFLEN);
 
-#endif
-				printf("Le fils (%d) a lu : %s \n", getpid(), paquet+sizeof(enTete));
+				printf("Réception d'un msg venant de A par le canal de A : %s \n", paquet+sizeof(enTete));
 				printf("L'en tête est : (%d, %d, %d)\n", ((enTete*)paquet)->numMessage, ((enTete*)paquet)->numSequence, ((enTete*)paquet)->maxSequence);
-				//send the message
+#endif
+				//send the message sur le canal
 				if (sendto(s, paquet, BUFLEN + sizeof(enTete), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 
-				//receive a reply and print it
 				//clear the buffer by filling null, it might have previously received data
-				memset(buf,'\0', BUFLEN);
-				//try to receive some data, this is a blocking call
-				if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1) bug("recvfrom()");
-				puts(buf);
+				memset(buf,'\0', MAX_BUFLEN);
 			}
+		//wait(&receive_status);
 		}
 		close(s);
-		wait(&receive_status);
 	}
 	return 0;
 }
