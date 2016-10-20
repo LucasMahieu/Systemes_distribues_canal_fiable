@@ -97,7 +97,7 @@ void printList(listeChaine* l){
 	printf("\n");
 }
 
-// Print all the strig stored in a buffer of an IDMessage
+// Print all the strings stored in a buffer of an IDMessage
 void printBuffer(char* buf, int max){
 	int i = 0;
 	printf("Contenu du buffer en differentes positions : \n");
@@ -130,4 +130,12 @@ void freeTabElement(IDMessage* messageAddress){
 	messageAddress->maxSequence = 0;
 	free(messageAddress->buffer);
 	messageAddress->buffer = NULL;
+
+	listeChaine* l;
+	listeChaine* m = messageAddress->list.next;
+	while (m != NULL) {
+		l = m;
+		m = m->next;
+		free(l);
+	}
 }

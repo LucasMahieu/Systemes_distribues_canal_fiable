@@ -81,7 +81,6 @@ int main(int argc, char **argv)
 			// printTab();
 			addValue(&(pointerIDMessage->list), ((enTete*) buf)->numSequence);
 
-			// checkCompletionMessage(&(pointerIDMessage->list), pointerIDMessage->maxSequence);
 			// printf("----------------------------------------------------------------------------------------");
 			// printTab();
 			// printf("----------------------------------------------------------------------------------------");
@@ -95,7 +94,17 @@ int main(int argc, char **argv)
 			printf("En Tête : (%d, %d, %d)\n", E.numMessage, E.numSequence, E.maxSequence);
 			printf("Data : %s\n", buf + sizeof(enTete));
 
+			// Is the message full ?
+			if (checkCompletionMessage(&(pointerIDMessage->list), pointerIDMessage->maxSequence)) {
+				printf("NON, le message n'est pas complet\n");
+			} else {
+				printf("OUI, le message est complet\n");
+				// freeTabElement(pointerIDMessage);
+				// Do not forget to recompose the message and use the pipe to deliver it.
+			}
 
+			printTab();
+			printf("-sdffWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW--------------------------");
 			//now reply the client with the ENTETE only
 			if (sendto(s, buf, sizeof(enTete), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 			memset(buf,'\0', MAX_BUFLEN);
@@ -124,11 +133,11 @@ int main(int argc, char **argv)
 			//puts(buf);
 		}else{  // Processus d'envoi des messages
 			
-			// En tete de test
+			// Fill entete
 			enTete E;
-			int numMessage = 1;
-			int numSequence = 1;
-			int maxSequence = 1;
+			E.numMessage = 1;
+			E.numSequence = 1;
+			E.maxSequence = 2;
 
 			while(1){
 				// Processus A va faire send(m), et gets recoit m
@@ -136,10 +145,7 @@ int main(int argc, char **argv)
 				printf("Enter message : ");
 				fgets(message, MAX_BUFLEN, stdin);
 
-				// Fill entete
-				E.numMessage = numMessage;
-				E.numSequence = numSequence;
-				E.maxSequence = maxSequence;
+
 				memcpy(packet, &E, sizeof(enTete));
 				memcpy(packet + sizeof(enTete), message, MAX_BUFLEN);
 
@@ -148,6 +154,7 @@ int main(int argc, char **argv)
 #endif
 				//send the message sur le canal
 				if (sendto(s, packet, MAX_BUFLEN + sizeof(enTete), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+				E.numSequence ++;
 
 				//clear the buffer by filling null, it might have previously received data
 				memset(buf,'\0', MAX_BUFLEN);
