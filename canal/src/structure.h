@@ -22,9 +22,9 @@ typedef struct IDMessage {
 
 // En tete of a udp package
 typedef struct enTete {
-	int numMessage;		// Number of the message 
-	int numSequence; 	// number of the package in the message
-	int maxSequence; 	//	The message is composed of maxSequence messages to assemble
+	int numMessage;		// Number of the message. The first message has a value of 1 for this attribute.
+	int numSequence; 	// number of the package in the message. The minimum value is 1.
+	int maxSequence; 	//	The message is composed of maxSequence messages to assemble. The minimum value is 1.
 } enTete;
 
 #define SERVER "127.0.0.1"	// IP of the process that receives messages

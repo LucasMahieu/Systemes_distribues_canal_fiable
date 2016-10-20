@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 	
 	//Si c'est un server : coté de B par convention
 	if(!strcmp(argv[1],"0")){
-		IDMessage* pointerMessage;
+		IDMessage* pointerIDMessage;
 		char* pointerBuffer;
 
 		// Sockaddr to recevie data
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 		si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
 		//bind socket to port
-		if( bind(s , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) bug("bind");
+		if(bind(s , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) bug("bind");
 
 		// Wait for the initialization message
 		// Does not work atm
@@ -59,8 +59,8 @@ int main(int argc, char **argv)
 		//keep listening for data
 		while(1)
 		{
-#ifdef DEBUG			
-			printf("Waiting for data...");
+#ifdef DEBUG
+			printf("Waiting for data...\n");
 			fflush(stdout);
 #endif
 			//Il faudra ici, bien vider le buffer = écrire un '\0' au début
@@ -68,27 +68,36 @@ int main(int argc, char **argv)
 			//try to receive some data, this is a blocking call
 			if ((recv_len = recvfrom(s, buf, MAX_BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
 
-			// pointerMessage = findMessage(((enTete*) buf)->numMessage, ((enTete*) buf)->maxSequence);
-			// printf("on est en %x \n", pointerMessage->buffer);
-			// pointerBuffer = (char*) (pointerMessage->buffer + ((enTete*) buf)->numSequence * sizeof(char));
-			// printf("%x, %d, %x\n\n", pointerMessage,((enTete*) buf)->numSequence * sizeof(char), pointerBuffer);
-			// memcpy(pointerBuffer, buf + sizeof(enTete), BUFLEN);
+			// Find (or allocate if first) the IDMessage struct in Tab where the message has to be stored.
+			pointerIDMessage = findMessage(((enTete*) buf)->numMessage, ((enTete*) buf)->maxSequence); 
 			// printTab();
-			// addValue(&(pointerMessage->list), ((enTete*) buf)->numSequence);
-			// checkCompletionMessage(&(pointerMessage->list), pointerMessage->maxSequence);
+			
+			
+			// Point on the begining of buffer in the IDMessage struct of Tab
+			pointerBuffer = (char*) (pointerIDMessage->buffer + (((enTete*) buf)->numSequence-1)*MAX_BUFLEN);
+
+			memcpy(pointerBuffer, buf + sizeof(enTete), MAX_BUFLEN);
+
+			// printTab();
+			addValue(&(pointerIDMessage->list), ((enTete*) buf)->numSequence);
+
+			// checkCompletionMessage(&(pointerIDMessage->list), pointerIDMessage->maxSequence);
+			// printf("----------------------------------------------------------------------------------------");
+			// printTab();
+			// printf("----------------------------------------------------------------------------------------");
+
 
 			//print details of the client/peer and the data received
 			printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
 			E.numMessage = 	((enTete*)buf)->numMessage;
 			E.numSequence = ((enTete*)buf)->numSequence;
 			E.maxSequence = ((enTete*)buf)->maxSequence;
-			// memcpy(message, buf + sizeof(enTete), BUFLEN);
-
-
 			printf("En Tête : (%d, %d, %d)\n", E.numMessage, E.numSequence, E.maxSequence);
 			printf("Data : %s\n", buf + sizeof(enTete));
-			//now reply the client with the same data
-			//if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+
+
+			//now reply the client with the ENTETE only
+			if (sendto(s, buf, sizeof(enTete), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 			memset(buf,'\0', MAX_BUFLEN);
 		}
 		close(s);
@@ -114,15 +123,15 @@ int main(int argc, char **argv)
 			//if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1) bug("recvfrom()");
 			//puts(buf);
 		}else{  // Processus d'envoi des messages
+			
 			// En tete de test
 			enTete E;
-			int numMessage = 0;
-			int numSequence = 0;
+			int numMessage = 1;
+			int numSequence = 1;
 			int maxSequence = 1;
 
 			while(1){
-				// Processus A va faire send(m), et gets recoi m
-				fgets(message, MAX_BUFLEN, stdin);
+				// Processus A va faire send(m), et gets recoit m
 #ifdef DEBUG
 				printf("Enter message : ");
 				fgets(message, MAX_BUFLEN, stdin);
@@ -134,8 +143,8 @@ int main(int argc, char **argv)
 				memcpy(packet, &E, sizeof(enTete));
 				memcpy(packet + sizeof(enTete), message, MAX_BUFLEN);
 
-				printf("Réception d'un msg venant de A par le canal de A : %s \n", packet+sizeof(enTete));
-				printf("L'en tête est : (%d, %d, %d)\n", ((enTete*)packet)->numMessage, ((enTete*)packet)->numSequence, ((enTete*)packet)->maxSequence);
+				printf("Le message que l'on vient d'envoyer : %s", packet+sizeof(enTete));
+				printf("L'en tête est : (%d, %d, %d)\n\n", ((enTete*)packet)->numMessage, ((enTete*)packet)->numSequence, ((enTete*)packet)->maxSequence);
 #endif
 				//send the message sur le canal
 				if (sendto(s, packet, MAX_BUFLEN + sizeof(enTete), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");

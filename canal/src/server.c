@@ -7,8 +7,8 @@ Else, return null.
 */
 IDMessage* findMessage(int RequestNumMessage, int RequestMax) {
 	int i;
-	IDMessage* voidElement;	// pointer to a void element in case the message does not exist yet
-	int voidIsFound = 0;	// bool to know if we have already found a void element
+	IDMessage* freeElement;	// pointer to a void element in case the message does not exist yet
+	int freeIsFound = 0;	// bool to know if we have already found a void element
 	for (i=0; i<MAXMESSAGE; i++) {
 		// Trying to find the message entry
 		if (Tab[i].numMessage == RequestNumMessage){
@@ -16,23 +16,23 @@ IDMessage* findMessage(int RequestNumMessage, int RequestMax) {
 		}
 
 		// Trying to find a void entry
-		if (!voidIsFound){
+		if (!freeIsFound){
 			if (Tab[i].numMessage == 0){
-				voidElement = &Tab[i];
-				voidIsFound = 1;
+				freeElement = &Tab[i];
+				freeIsFound = 1;
 			}
 		}
 	}
-	printf("WHAT %d \n", voidIsFound);
-	if (voidIsFound) {
-		voidElement->numMessage = RequestNumMessage;
-		voidElement->maxSequence = RequestMax;
-		voidElement->buffer = (char*) calloc(RequestMax * MAXMESSAGE, sizeof(char));
-		printf("AALOCATION EN %x\n", voidElement->buffer);
-		if (voidElement->buffer == NULL) {
+	// printf("freeIsFound %d \n", freeIsFound);
+	if (freeIsFound) {
+		freeElement->numMessage = RequestNumMessage;
+		freeElement->maxSequence = RequestMax;
+		freeElement->buffer = (char*) calloc(RequestMax * MAXMESSAGE, sizeof(char));
+		// printf("freeElement : %p, buffer  EN %p\n", freeElement, freeElement->buffer);
+		if (freeElement->buffer == NULL) {
 			perror("calloc invalided");
 		}
-		return &Tab[i];
+		return freeElement;
 	}
 	return NULL;
 }
@@ -42,45 +42,31 @@ IDMessage* findMessage(int RequestNumMessage, int RequestMax) {
 void InitTab(){
 	int i;
 	for (i=1; i<MAXMESSAGE; i++){
-		Tab[i].numMessage = -1;
-		Tab[i].maxSequence = -1;
-		listeChaine l = {-1, NULL};
-		Tab[i].list = l;
+		Tab[i].numMessage = 0;
+		Tab[i].maxSequence = 0;
+		Tab[i].list.num = 0;
+		Tab[i].list.next = NULL;
 		Tab[i].buffer = NULL;
 	}
 }
 
 // Add a value to the listeChaine
 void addValue(listeChaine* l, int i){
-	listeChaine newElement;
+	
+	listeChaine* newElement = malloc(sizeof(listeChaine));	//------------------------------------------------------------------------ attention null
+	newElement->num = i;
 	listeChaine* L = l;
-	listeChaine* M = l;
-	newElement.num = i;
 
-	while (M->num < i && M->next != NULL){
-		L = M;
-		M = M->next;
-	}
-	newElement.next = L->next;
-	L->next = &newElement;
-}
-
-void printList(listeChaine* l){
-	listeChaine* L = l;
-	printf("Dans la liste chainee : ");
-	while (L != NULL) {
-		printf("%d", L->num);
+	while (L->num < i && L->next != NULL){
+		// printf("ONESTRENTRE\n");
 		L = L->next;
 	}
-	printf("\n");
+	newElement->next = L->next;
+	L->next = newElement;
+	// printf("POINT : %p, %p, %p, %p, %p", l->next, L, L->next, newElement, newElement->next);
 }
 
-void printBuffer(char* buf, int max){
-	int i = 0;
-	for (i=0; i<max; i++) {
-		printf("Contenu du buffer en %d : %s\n", i, buf+i*MAX_BUFLEN);
-	}
-}
+
 
 // Check that all sequences of the message have been received.
 // return 0 if true, 1 if some misses.
@@ -101,6 +87,27 @@ int checkCompletionMessage(listeChaine* l, int maxSequence) {
 	}
 }
 
+// Print all the elements in a typical list
+void printList(listeChaine* l){
+	printf("Dans la liste chainee : ");
+	while (l != NULL) {
+		printf("%d,", l->num);
+		l = l->next;
+	}
+	printf("\n");
+}
+
+// Print all the strig stored in a buffer of an IDMessage
+void printBuffer(char* buf, int max){
+	int i = 0;
+	printf("Contenu du buffer en differentes positions : \n");
+	for (i=0; i<max; i++) {
+		printf("i= %d : %s\n", i, buf+i*MAX_BUFLEN);
+	}
+}
+
+
+// Print all the values in the Tab
 void printTab() {
 	int i;
 	IDMessage* IDMes;
@@ -109,9 +116,11 @@ void printTab() {
 		printf("numMessage : %d\nmaxSequence : %d\n", IDMes->numMessage, IDMes->maxSequence);
 		printList(&(IDMes->list));
 		printBuffer(IDMes->buffer, IDMes->maxSequence);
-		printf("dans le buffer %s", IDMes->buffer);
+		printf("\n");
 	}
 }
+
+
 
 
 
