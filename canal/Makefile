@@ -15,10 +15,10 @@ PROG = myCanal
 
 all: $(PROG)
 
-exe: $(PROG)
+exeMyCanal: $(PROG)
 	./$(PROG)
-	
-myCanal: $(BUILD_DIR)main.o
+
+myCanal: $(OBJS)
 	@$(CC) -o $@ $^ $(LDFLAGS)
 
 $(BUILD_DIR)main.o: $(SRC_DIR)main.c $(HEADERS)
@@ -27,10 +27,10 @@ $(BUILD_DIR)main.o: $(SRC_DIR)main.c $(HEADERS)
 $(BUILD_DIR)%.o: %.c $(HEADERS)
 	@$(CC) -o $@ -c $< $(CFLAGS)
 
-.PHONY: clean 
+.PHONY: clean, all
 
 clean: 
-	rm -f build/*.o 
+	rm -f build/*/*.o 
 	rm $(PROG)
 
 

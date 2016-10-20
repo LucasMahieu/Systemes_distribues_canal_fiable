@@ -11,13 +11,13 @@ SRC = $(shell find . -name '*.c')
 OBJS = $(SRC:%.c=$(BUILD_DIR)%.o)
 HEADERS = $(shell find . -name '*.h') 
 
-PROG = myProcTest
+PROG = myProcTestA
 all: $(PROG)
 	
-exe: $(PROG)
+exeA: $(PROG)
 	./$(PROG)
 
-myProcTest: $(BUILD_DIR)main.o
+$(PROG): $(OBJS)
 	@$(CC) -o $@ $^ $(LDFLAGS)
 
 $(BUILD_DIR)main.o: $(SRC_DIR)main.c $(HEADERS)
@@ -29,7 +29,7 @@ $(BUILD_DIR)%.o: %.c $(HEADERS)
 .PHONY: clean 
 
 clean: 
-	rm -f build/*.o 
+	rm -f build/*/*.o 
 	rm $(PROG)
 
 
