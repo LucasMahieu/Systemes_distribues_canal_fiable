@@ -11,7 +11,7 @@ typedef struct listeChaine {
 	int num;
 	struct listeChaine* next;
 } listeChaine;
-
+// not used --------------------- --------------------- --------------------- --------------------- --------------------- ---------------------
 // Structure for the Tab to get informations about the message stored in this element
 typedef struct IDMessage {
 	int numMessage; 	// Number of the message 
@@ -26,6 +26,18 @@ typedef struct enTete {
 	int numSequence; 	// number of the package in the message. The minimum value is 1.
 	int maxSequence; 	//	The message is composed of maxSequence messages to assemble. The minimum value is 1.
 } enTete;
+// not used --------------------- --------------------- --------------------- --------------------- --------------------- ---------------------
+
+// General packet
+typedef struct packet {
+	uint32_t source; 			// processus source
+	uint64_t numPacket;		// Number of the message. The first message has a value of 1 for this attribute.
+	uint8_t ack;					// is ack or not (0 if not ack)
+	char message[MAX_BUFLEN];				// message (data)
+} Packet;
+
+
+
 
 #define SERVER "127.0.0.1"	// IP of the process that receives messages
 #define PORT 8888   		//The port on which to listen for incoming data
@@ -33,6 +45,6 @@ typedef struct enTete {
 #define MAX_BUFLEN 2048		//Max length of buffer (for messages)
 
 #define MAXMESSAGE 64		//Maximum messages that we can receive simultaneously
-IDMessage Tab[MAXMESSAGE];	// Array of temporarily stored messages
+#define WINDOW_SIZE 64 	// size of the window
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;

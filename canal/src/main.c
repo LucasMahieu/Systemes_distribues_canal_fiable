@@ -19,9 +19,6 @@ int main(int argc, char **argv)
 	Socket s;
 	unsigned int slen = sizeof(si_other);				//slen to store the length of the address when we receive a packet,
 	unsigned int recv_len;								//recv_len to get the number of char we received
-	char buf[MAX_BUFLEN];
-	char message[MAX_BUFLEN];							// Message to send / receive
-	char packet[MAX_BUFLEN + sizeof(enTete)];			// En tête  + Message = packet
 
 	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) bug("socket");
@@ -33,8 +30,6 @@ int main(int argc, char **argv)
 	
 	//Si c'est un server : coté de B par convention
 	if(!strcmp(argv[1],"0")){
-		IDMessage* pointerIDMessage;
-		char* pointerBuffer;
 
 		// Sockaddr to recevie data
 		Sockaddr_in si_me;
@@ -51,10 +46,10 @@ int main(int argc, char **argv)
 		//handshakeServer(s);
 
 		// Init the Tab to store messages before delivering them
-		InitTab();
+		uint64_t Tab[WINDOW_SIZE];	// init tab 
 
-		enTete E;
-		char message[MAX_BUFLEN];
+		Packet p;
+		uint64_t fastOfUs = 0;
 
 		//keep listening for data
 		while(1)
@@ -66,48 +61,32 @@ int main(int argc, char **argv)
 			//Il faudra ici, bien vider le buffer = écrire un '\0' au début
 			//Sinon quand le message est plus petite que l'ancien, on voit encore l'ancien
 			//try to receive some data, this is a blocking call
-			if ((recv_len = recvfrom(s, buf, MAX_BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
+			if ((recv_len = recvfrom(s, &p, sizeof(p), 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
 
-			// Find (or allocate if first) the IDMessage struct in Tab where the message has to be stored.
-			pointerIDMessage = findMessage(((enTete*) buf)->numMessage, ((enTete*) buf)->maxSequence); 
-			// printTab();
+#ifdef DEBUG 
+			printf("L'en tête est : (%u %u, %u)\n", p.source, p.numPacket, p.ack);
+			printf("Le message que l'on vient d'envoyer : %s\n", p.message);
+#endif
+
+
+			if (in_window(fastOfUs, p.numPacket) {
+
+						p.source = get_pid();
+						p.ack = 1;
+
 			
+
+					//now reply the client with the ENTETE only
+					if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 			
-			// Point on the begining of buffer in the IDMessage struct of Tab
-			pointerBuffer = (char*) (pointerIDMessage->buffer + (((enTete*) buf)->numSequence-1)*MAX_BUFLEN);
+					// Fonction DELIVER a B
+					puts(p.message);
+					Tab[p.numPacket%WINDOW_SIZE] = 1;
+					fastOfUs = 
 
-			memcpy(pointerBuffer, buf + sizeof(enTete), MAX_BUFLEN);
-
-			// printTab();
-			addValue(&(pointerIDMessage->list), ((enTete*) buf)->numSequence);
-
-			// printf("----------------------------------------------------------------------------------------");
-			// printTab();
-			// printf("----------------------------------------------------------------------------------------");
-
-
-			//print details of the client/peer and the data received
-			printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
-			E.numMessage = 	((enTete*)buf)->numMessage;
-			E.numSequence = ((enTete*)buf)->numSequence;
-			E.maxSequence = ((enTete*)buf)->maxSequence;
-			printf("En Tête : (%d, %d, %d)\n", E.numMessage, E.numSequence, E.maxSequence);
-			printf("Data : %s\n", buf + sizeof(enTete));
-
-			// Is the message full ?
-			if (checkCompletionMessage(&(pointerIDMessage->list), pointerIDMessage->maxSequence)) {
-				printf("NON, le message n'est pas complet\n");
-			} else {
-				printf("OUI, le message est complet\n");
-				// freeTabElement(pointerIDMessage);
-				// Do not forget to recompose the message and use the pipe to deliver it.
-			}
-
-			printTab();
-			printf("-sdffWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW--------------------------");
-			//now reply the client with the ENTETE only
-			if (sendto(s, buf, sizeof(enTete), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
-			memset(buf,'\0', MAX_BUFLEN);
+					//now reply the client with the same data
+					memset(p.message,'\0', MAX_BUFLEN);
+				}
 		}
 		close(s);
 	}
@@ -132,34 +111,37 @@ int main(int argc, char **argv)
 			//if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1) bug("recvfrom()");
 			//puts(buf);
 		}else{  // Processus d'envoi des messages
-			
-			// Fill entete
-			enTete E;
-			E.numMessage = 1;
-			E.numSequence = 1;
-			E.maxSequence = 2;
+							printf("L'en tête est : (%u %u, %u)\n", p.source, p.numPacket, p.ack);
+				printf("Le message que l'on vient d'envoyer : %s\n", p.message);
+			char message[MAX_BUFLEN];
+			// init packet
+			Packet p;
+		 	p.source = get_pid(); 	// processus source
+			p.numPacket = 0;				// Number of the message. The first message has a value of 1 for this attribute.
+			p.ack = 0;							// is ack or not
 
 			while(1){
 				// Processus A va faire send(m), et gets recoit m
-#ifdef DEBUG
+
 				printf("Enter message : ");
 				fgets(message, MAX_BUFLEN, stdin);
 
+				// copy message in the packet
+				memcpy(p.message, message, sizeof(char)*strlen(message));
 
-				memcpy(packet, &E, sizeof(enTete));
-				memcpy(packet + sizeof(enTete), message, MAX_BUFLEN);
 
-				printf("Le message que l'on vient d'envoyer : %s", packet+sizeof(enTete));
-				printf("L'en tête est : (%d, %d, %d)\n\n", ((enTete*)packet)->numMessage, ((enTete*)packet)->numSequence, ((enTete*)packet)->maxSequence);
+#ifdef DEBUG
+				printf("L'en tête est : (%u %u, %u)\n", p.source, p.numPacket, p.ack);
+				printf("Le message que l'on vient d'envoyer : %s\n", p.message);
 #endif
 				//send the message sur le canal
-				if (sendto(s, packet, MAX_BUFLEN + sizeof(enTete), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
-				E.numSequence ++;
+				if (sendto(s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(char)*strlen(p.message), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+				p.numPacket ++;
 
 				//clear the buffer by filling null, it might have previously received data
-				memset(buf,'\0', MAX_BUFLEN);
+				memset(p.message,'\0', MAX_BUFLEN);
 			}
-		//wait(&receive_status);
+		wait(&receive_status);
 		}
 		close(s);
 	}
