@@ -1,10 +1,12 @@
 #ifndef STRUCTURE
-#include "structure.h"
 #define STRUCTURE
-#endif
 
-#include "server.h"
+#include	<stdint.h>
+#include <inttypes.h>
+#include	<unistd.h>
 
+#include "structure.h"
+#include "receive.h"
 #define DEBUG
 
 void bug(char *s)
@@ -49,44 +51,37 @@ int main(int argc, char **argv)
 		uint64_t Tab[WINDOW_SIZE];	// init tab 
 
 		Packet p;
-		uint64_t fastOfUs = 0;
+		uint64_t oldWaitingAck = 0;
 
 		//keep listening for data
 		while(1)
 		{
-#ifdef DEBUG
-			printf("Waiting for data...\n");
-			fflush(stdout);
-#endif
 			//Il faudra ici, bien vider le buffer = écrire un '\0' au début
 			//Sinon quand le message est plus petite que l'ancien, on voit encore l'ancien
 			//try to receive some data, this is a blocking call
 			if ((recv_len = recvfrom(s, &p, sizeof(p), 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
 
 #ifdef DEBUG 
-			printf("L'en tête est : (%u %u, %u)\n", p.source, p.numPacket, p.ack);
-			printf("Le message que l'on vient d'envoyer : %s\n", p.message);
+			fprintf(stderr, "### CANAL de B\n");
+			fprintf(stderr, "L'en tête est : (%u %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
+			fprintf(stderr, "Le message que l'on vient d'envoyer : %s\n", p.message);
+			fflush(stderr);
 #endif
+			if (in_window(oldWaitingAck, p.numPacket)) {
+				p.source = getpid();
+				p.ack = 1;	
 
+				//now reply the client with the ENTETE only
+				//if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 
-			if (in_window(fastOfUs, p.numPacket) {
+				// Fonction DELIVER a B
+				puts(p.message);
+				Tab[p.numPacket%WINDOW_SIZE] = 1;
+				oldWaitingAck ++;
 
-						p.source = get_pid();
-						p.ack = 1;
-
-			
-
-					//now reply the client with the ENTETE only
-					if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
-			
-					// Fonction DELIVER a B
-					puts(p.message);
-					Tab[p.numPacket%WINDOW_SIZE] = 1;
-					fastOfUs = 
-
-					//now reply the client with the same data
-					memset(p.message,'\0', MAX_BUFLEN);
-				}
+				//now reply the client with the same data
+				memset(p.message,'\0', MAX_BUFLEN);
+			}
 		}
 		close(s);
 	}
@@ -111,28 +106,30 @@ int main(int argc, char **argv)
 			//if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1) bug("recvfrom()");
 			//puts(buf);
 		}else{  // Processus d'envoi des messages
-							printf("L'en tête est : (%u %u, %u)\n", p.source, p.numPacket, p.ack);
-				printf("Le message que l'on vient d'envoyer : %s\n", p.message);
+			volatile uint8_t stop=0; 
 			char message[MAX_BUFLEN];
 			// init packet
 			Packet p;
-		 	p.source = get_pid(); 	// processus source
+			p.source = getpid(); 	// processus source
 			p.numPacket = 0;				// Number of the message. The first message has a value of 1 for this attribute.
 			p.ack = 0;							// is ack or not
 
-			while(1){
+			while(!stop){
 				// Processus A va faire send(m), et gets recoit m
 
-				printf("Enter message : ");
-				fgets(message, MAX_BUFLEN, stdin);
-
+				if(fgets(message, MAX_BUFLEN, stdin) == NULL){
+					if(ferror(stdin)) bug("Erreur fgets\n");
+					stop=1;
+					continue;
+				}
 				// copy message in the packet
 				memcpy(p.message, message, sizeof(char)*strlen(message));
 
-
 #ifdef DEBUG
-				printf("L'en tête est : (%u %u, %u)\n", p.source, p.numPacket, p.ack);
+				printf("### CANAL A\n");
+				printf("L'en tête est : (%u, %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
 				printf("Le message que l'on vient d'envoyer : %s\n", p.message);
+				fflush(stdout);
 #endif
 				//send the message sur le canal
 				if (sendto(s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(char)*strlen(p.message), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
@@ -141,9 +138,10 @@ int main(int argc, char **argv)
 				//clear the buffer by filling null, it might have previously received data
 				memset(p.message,'\0', MAX_BUFLEN);
 			}
-		wait(&receive_status);
 		}
 		close(s);
 	}
 	return 0;
 }
+
+#endif

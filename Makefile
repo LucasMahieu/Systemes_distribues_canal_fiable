@@ -42,7 +42,10 @@ $(PROG2):
 
 clean: 
 	@(cd $(PROG0_DIR) && $(MAKE) $@)
+	@rm myProcTestA
 	@(cd $(PROG1_DIR) && $(MAKE) $@)
+	@rm myProcTestB
 	@(cd $(PROG2_DIR) && $(MAKE) $@)
+	@rm myCanal
 
 

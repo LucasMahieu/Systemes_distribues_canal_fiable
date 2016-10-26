@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 	canal_pid = fork();    
 	if (canal_pid == -1) bug("Erreur dans fork \n");
 
-	// processus fils : Créer le Canal de com avec A
+	// processus fils : Créer le Canal pour com avec A
 	if (canal_pid == 0){
 		// On remplace le stdin du proc par le pipe
 		dup2(tube_AtoCanal[0],0);
@@ -51,6 +51,7 @@ int main(int argc, char **argv)
 		close(tube_CanaltoA[0]);
 		close(tube_CanaltoA[1]);
 #ifdef DEBUG
+		printf("### lancer de canal\n");
 		printf("Fermeture de l'entrée du tube A to Canal dans le proc fils (pid = %d)\n", getpid());
 		printf("Fermeture de la sortie du tube Canal to A dans le proc fils (pid = %d)\n", getpid());
 #endif
@@ -61,11 +62,6 @@ int main(int argc, char **argv)
 		
 		bug("Erreur de execvp myCanal\n");
 
-		//read(tube_AtoCanal[0], bufferR, BUFFER_SIZE);
-		//printf("Le fils (%d) a lu : %s \n", getpid(), bufferR);
-
-		//sprintf(bufferW, "Message du fils (%d) au père: Coucou papounet", getpid());
-		//write(tube_CanaltoA[1], bufferW, BUFFER_SIZE);
 	// processus père : C'est le processus A qui envoie des msg au canal (son fils)
 	} else {
 		char toSendBuffer[MAX_TOSEND_BUFFER];
@@ -76,23 +72,31 @@ int main(int argc, char **argv)
 		FILE* fOUT;
 		if((fOUT=fdopen(tube_AtoCanal[1],"w"))==NULL) bug("Erreur fOUT prog A");
 
+		volatile uint8_t stop=0;
 		// Fermeture des fd inutile
 		close(tube_AtoCanal[0]);
 		close(tube_CanaltoA[1]);
 		close(tube_CanaltoA[0]);
 #ifdef DEBUG
+		printf("### Proc A\n");
 		printf("Fermeture de la sortie du tube A to Canal dans le proc pere (pid = %d)\n", getpid());
 		printf("Fermeture de l'entrée du tube Canal to A dans le proc pere (pid = %d)\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
 		sleep(5);
-		while( fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN) ){
+		while(!stop){
+			if(fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN)==NULL){
+				stop=1;
+				continue;
+			}
 #ifdef DEBUG
+			printf("### Proc A");
 			printf("A envoie le msg suivant à B: %s\n",toSendBuffer);
 #endif
 			// fonction que doit appeler A pour envoyer des données à B par le canal
 			fwrite(toSendBuffer, 1, strlen(toSendBuffer), fOUT);
 
+			memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
 			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
 			// on pause quelques sec
 			sleep(rand()%3);

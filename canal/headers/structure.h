@@ -7,6 +7,16 @@
 #include <unistd.h> // sleep during x s
 #include <signal.h> 
 
+#define SERVER "127.0.0.1"	// IP of the process that receives messages
+#define PORT 8888   		//The port on which to listen for incoming data
+
+#define MAX_BUFLEN 2048		//Max length of buffer (for messages)
+
+#define MAXMESSAGE 64		//Maximum messages that we can receive simultaneously
+#define WINDOW_SIZE 64 	// size of the window
+
+typedef struct sockaddr_in Sockaddr_in;
+typedef int Socket;
 typedef struct listeChaine {
 	int num;
 	struct listeChaine* next;
@@ -39,12 +49,3 @@ typedef struct packet {
 
 
 
-#define SERVER "127.0.0.1"	// IP of the process that receives messages
-#define PORT 8888   		//The port on which to listen for incoming data
-
-#define MAX_BUFLEN 2048		//Max length of buffer (for messages)
-
-#define MAXMESSAGE 64		//Maximum messages that we can receive simultaneously
-#define WINDOW_SIZE 64 	// size of the window
-typedef struct sockaddr_in Sockaddr_in;
-typedef int Socket;

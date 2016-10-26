@@ -1,10 +1,10 @@
 #include "structure.h"
-
+/**
+ * Find the message to write the data in. If the message does not exist yes, create it.
+ * Usually returns the address of the structure where the message is to store.
+ * Else, return null.
+ */
 /*
-Find the message to write the data in. If the message does not exist yes, create it.
-Usually returns the address of the structure where the message is to store.
-Else, return null.
-*/
 IDMessage* findMessage(int RequestNumMessage, int RequestMax) {
 	int i;
 	IDMessage* freeElement;	// pointer to a void element in case the message does not exist yet
@@ -139,3 +139,4 @@ void freeTabElement(IDMessage* messageAddress){
 		free(l);
 	}
 }
+*/
