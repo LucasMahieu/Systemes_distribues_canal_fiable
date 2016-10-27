@@ -4,15 +4,17 @@
 #include	<stdint.h>
 #include <inttypes.h>
 #include	<unistd.h>
+// to pull the pipe
+#include	<poll.h>
 
 #include "structure.h"
 #include "receive.h"
-#define DEBUG
+//#define DEBUG
 
 void bug(char *s)
 {
 	perror(s);
-	exit(1);
+	fflush(stderr);
 }
 
 int main(int argc, char **argv)
@@ -106,6 +108,10 @@ int main(int argc, char **argv)
 			//if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1) bug("recvfrom()");
 			//puts(buf);
 		}else{  // Processus d'envoi des messages
+			// structure à donner à poll() pour savoir si il y a des data à lire 
+			struct pollfd pfd[1];
+			pfd[0].fd = fileno(stdin);
+			pfd[0].events = POLLIN | POLLPRI;
 			volatile uint8_t stop=0; 
 			char message[MAX_BUFLEN];
 			// init packet
@@ -117,26 +123,33 @@ int main(int argc, char **argv)
 			while(!stop){
 				// Processus A va faire send(m), et gets recoit m
 
-				if(fgets(message, MAX_BUFLEN, stdin) == NULL){
-					if(ferror(stdin)) bug("Erreur fgets\n");
-					stop=1;
-					continue;
-				}
-				// copy message in the packet
-				memcpy(p.message, message, sizeof(char)*strlen(message));
+				if(poll(pfd,1,0)<1){
+#ifdef DEBUG 
+					bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A\n");
+#endif
+				}else{
+					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
+						if(ferror(stdin)) bug("Erreur fgets\n");
+						bug("Canal 1 : EOF Received\n");
+						stop=1;
+						continue;
+					}
+					// copy message in the packet
+					memcpy(p.message, message, sizeof(char)*strlen(message));
 
 #ifdef DEBUG
-				printf("### CANAL A\n");
-				printf("L'en tête est : (%u, %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
-				printf("Le message que l'on vient d'envoyer : %s\n", p.message);
-				fflush(stdout);
+					printf("### CANAL A\n");
+					printf("L'en tête est : (%u, %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
+					printf("Le message que l'on vient d'envoyer : %s\n", p.message);
+					fflush(stdout);
 #endif
-				//send the message sur le canal
-				if (sendto(s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(char)*strlen(p.message), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
-				p.numPacket ++;
+					//send the message sur le canal
+					if (sendto(s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(char)*strlen(p.message), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+					p.numPacket ++;
 
-				//clear the buffer by filling null, it might have previously received data
-				memset(p.message,'\0', MAX_BUFLEN);
+					//clear the buffer by filling null, it might have previously received data
+					memset(p.message,'\0', MAX_BUFLEN);
+				}
 			}
 		}
 		close(s);

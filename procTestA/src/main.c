@@ -21,7 +21,7 @@
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
-	exit(1);
+	fflush(stderr);
 }
 
 int main(int argc, char **argv)
@@ -51,9 +51,9 @@ int main(int argc, char **argv)
 		close(tube_CanaltoA[0]);
 		close(tube_CanaltoA[1]);
 #ifdef DEBUG
-		printf("### lancer de canal\n");
-		printf("Fermeture de l'entrée du tube A to Canal dans le proc fils (pid = %d)\n", getpid());
-		printf("Fermeture de la sortie du tube Canal to A dans le proc fils (pid = %d)\n", getpid());
+		fprintf(stderr, "### lancer de canal\n");
+		fprintf(stderr, "Fermeture de l'entrée du tube A to Canal dans le proc fils (pid = %d)\n", getpid());
+		fprintf(stderr, "Fermeture de la sortie du tube Canal to A dans le proc fils (pid = %d)\n", getpid());
 #endif
 		// liste qui servira au execvp
 		char* arg_list[] = {"./myCanal", "1", NULL};
@@ -78,20 +78,22 @@ int main(int argc, char **argv)
 		close(tube_CanaltoA[1]);
 		close(tube_CanaltoA[0]);
 #ifdef DEBUG
-		printf("### Proc A\n");
-		printf("Fermeture de la sortie du tube A to Canal dans le proc pere (pid = %d)\n", getpid());
-		printf("Fermeture de l'entrée du tube Canal to A dans le proc pere (pid = %d)\n", getpid());
+		fprintf(stderr, "### Proc A\n");
+		fprintf(stderr, "Fermeture de la sortie du tube A to Canal dans le proc pere (pid = %d)\n", getpid());
+		fprintf(stderr, "Fermeture de l'entrée du tube Canal to A dans le proc pere (pid = %d)\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
 		sleep(5);
 		while(!stop){
 			if(fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN)==NULL){
+				bug("PROC A : No more data, EOF read\n");
 				stop=1;
 				continue;
 			}
 #ifdef DEBUG
-			printf("### Proc A");
-			printf("A envoie le msg suivant à B: %s\n",toSendBuffer);
+			bug("### Proc A\n");
+			fprintf(stderr,"A envoie le msg suivant à B: %s\n",toSendBuffer);
+			fflush(stderr);
 #endif
 			// fonction que doit appeler A pour envoyer des données à B par le canal
 			fwrite(toSendBuffer, 1, strlen(toSendBuffer), fOUT);
@@ -103,6 +105,7 @@ int main(int argc, char **argv)
 		}
 		fclose(fIN);
 		fclose(fOUT);
+		close(tube_AtoCanal[1]);
 		wait(NULL);
 	}
 	return 0;
