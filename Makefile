@@ -31,11 +31,11 @@ exeMyCanal: $(PROG2)
 	./myCanal
 
 ### Compilation of PROG 0
-$(PROG0):
+$(PROG0): $(PROG0_DIR)$(SRC_DIR)*.c 
 	@(cd $(PROG0_DIR) && $(MAKE))
-$(PROG1):
+$(PROG1): $(PROG1_DIR)$(SRC_DIR)*.c
 	@(cd $(PROG1_DIR) && $(MAKE))
-$(PROG2):
+$(PROG2): $(PROG2_DIR)$(SRC_DIR)*.c
 	@(cd $(PROG2_DIR) && $(MAKE))
 
 .PHONY: clean 
