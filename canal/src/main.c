@@ -9,7 +9,8 @@
 
 #include "structure.h"
 #include "receive.h"
-//#define DEBUG
+#include	"window.h"
+#define DEBUG
 
 void bug(char *s)
 {
@@ -71,7 +72,7 @@ int main(int argc, char **argv)
 #endif
 			if (in_window(oldWaitingAck, p.numPacket)) {
 				p.source = getpid();
-				p.ack = 1;	
+				p.ack = 1;
 
 				//now reply the client with the ENTETE only
 				//if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
@@ -112,44 +113,90 @@ int main(int argc, char **argv)
 			struct pollfd pfd[1];
 			pfd[0].fd = fileno(stdin);
 			pfd[0].events = POLLIN | POLLPRI;
+
 			volatile uint8_t stop=0; 
+
 			char message[MAX_BUFLEN];
+			uint64_t currentIDPacket=0;
 			// init packet
 			Packet p;
+			Packet *toSendp=NULL;
 			p.source = getpid(); 	// processus source
-			p.numPacket = 0;				// Number of the message. The first message has a value of 1 for this attribute.
+			p.numPacket = currentIDPacket;				// Number of the message. The first message has a value of 1 for this attribute.
 			p.ack = 0;							// is ack or not
 
-			while(!stop){
-				// Processus A va faire send(m), et gets recoit m
+			// Pour la fiabilisation du canal
+			WaitAckElement windowTable[WINDOW_SIZE]; 
+			uint32_t iMemorize=0;
+			uint32_t iSend=0;
+			uint32_t iReSend=0;
+			Time currentTime;
+			gettimeofday(&currentTime,NULL);
 
+			// Processus A va faire send(m), et gets recoit m
+			while(!stop){
 				if(poll(pfd,1,0)<1){
 #ifdef DEBUG 
-					bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A\n");
+					bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A -- Resending no ack packet\n");
 #endif
 				}else{
-					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
-						if(ferror(stdin)) bug("Erreur fgets\n");
-						bug("Canal 1 : EOF Received\n");
-						stop=1;
-						continue;
+					// On test si il y a assez de place pour le mémoriser 
+					if(iMemorize<iReSend+WINDOW_SIZE){
+						if(fgets(message, MAX_BUFLEN, stdin) == NULL){
+							if(ferror(stdin)) bug("Erreur fgets\n");
+							bug("Canal 1 : EOF Received\n");
+							stop=1;
+							continue;
+						}
+						// Filling the packet with some information and the data
+						memcpy(p.message, message, sizeof(char)*strlen(message));
+						p.numPacket = currentIDPacket;
+						currentIDPacket++;
+						// On mémorise le packet reçu pour l'envoyer plus tard
+						windowTable[iMemorize%WINDOW_SIZE].p = p;
+						gettimeofday(&currentTime,NULL);
+						windowTable[iMemorize%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
+						windowTable[iMemorize%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
+						iMemorize++;
+#ifdef DEBUG
+						printf("### CANAL A\n");
+						printf("L'en tête est : (%u, %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
+						printf("Le message que l'on viens de recevoir de A : %s\n", p.message);
+						fflush(stdout);
+#endif
 					}
-					// copy message in the packet
-					memcpy(p.message, message, sizeof(char)*strlen(message));
-
+				}
+				// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
+				if (windowTable[iReSend%WINDOW_SIZE].timeout.tv_sec < currentTime.tv_sec || windowTable[iReSend].timeout.tv_usec < currentTime.tv_usec){
+					toSendp = &(windowTable[iReSend%WINDOW_SIZE].p);
+					gettimeofday(&currentTime,NULL);
+					windowTable[iReSend%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
+					windowTable[iReSend%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
+					//send the message sur le canal
+					if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(char)*strlen(toSendp->message), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
 					printf("### CANAL A\n");
-					printf("L'en tête est : (%u, %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
-					printf("Le message que l'on vient d'envoyer : %s\n", p.message);
+					printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
+					printf("Message RE envoyé: %s\n", toSendp->message);
 					fflush(stdout);
 #endif
+				}else if(iSend<iMemorize){
+					toSendp = &(windowTable[iSend%WINDOW_SIZE].p);
+					gettimeofday(&currentTime,NULL);
+					windowTable[iSend%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
+					windowTable[iSend%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
+					iSend++;
 					//send the message sur le canal
-					if (sendto(s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(char)*strlen(p.message), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
-					p.numPacket ++;
-
+					if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(char)*strlen(toSendp->message), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+#ifdef DEBUG
+					printf("### CANAL A\n");
+					printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
+					printf("Message envoyé : %s\n", toSendp->message);
+					fflush(stdout);
+#endif
+				}
 					//clear the buffer by filling null, it might have previously received data
 					memset(p.message,'\0', MAX_BUFLEN);
-				}
 			}
 		}
 		close(s);

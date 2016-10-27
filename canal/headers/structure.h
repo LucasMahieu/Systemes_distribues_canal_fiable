@@ -1,3 +1,6 @@
+#ifndef __STRUCTURE_H
+#define __STRUCTURE_H
+
 #include <stdio.h> //printf
 #include <string.h> //memset
 #include <stdlib.h> //exit(0);
@@ -13,15 +16,15 @@
 #define MAX_BUFLEN 2048		//Max length of buffer (for messages)
 
 #define MAXMESSAGE 64		//Maximum messages that we can receive simultaneously
-#define WINDOW_SIZE 64 	// size of the window
 
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;
+
+// not used --------------------- --------------------- --------------------- --------------------- --------------------- ---------------------
 typedef struct listeChaine {
 	int num;
 	struct listeChaine* next;
 } listeChaine;
-// not used --------------------- --------------------- --------------------- --------------------- --------------------- ---------------------
 // Structure for the Tab to get informations about the message stored in this element
 typedef struct IDMessage {
 	int numMessage; 	// Number of the message 
@@ -48,4 +51,4 @@ typedef struct packet {
 
 
 
-
+#endif

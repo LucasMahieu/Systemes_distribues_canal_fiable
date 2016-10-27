@@ -17,7 +17,7 @@
 
 #define MAX_TOSEND_BUFFER 2048
 
-#define DEBUG
+//#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 			memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
 			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
 			// on pause quelques sec
-			sleep(rand()%3);
+			sleep(rand()%2);
 		}
 		fclose(fIN);
 		fclose(fOUT);
