@@ -5,7 +5,7 @@ SRC_DIR = src/
 H_DIR = headers/
 
 CFLAGS = -Wall -g -I$(H_DIR)
-LDFLAGS = 
+LDFLAGS = -lpthread 
 
 SRC = $(shell find . -name '*.c') 
 OBJS = $(SRC:%.c=$(BUILD_DIR)%.o)
