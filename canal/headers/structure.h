@@ -13,7 +13,7 @@
 #define SERVER "127.0.0.1"	// IP of the process that receives messages
 #define PORT 8888   		//The port on which to listen for incoming data
 
-#define MAX_BUFLEN 2048		//Max length of buffer (for messages)
+#define MAX_BUFLEN 4096		//Max length of buffer (for messages)
 
 #define MAXMESSAGE 64		//Maximum messages that we can receive simultaneously
 

@@ -17,7 +17,7 @@
 
 #define MAX_TOSEND_BUFFER 2048
 
-//#define DEBUG
+#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);

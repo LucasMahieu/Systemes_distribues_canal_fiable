@@ -12,14 +12,14 @@
 #include "receive.h"
 #include "receive_ack.h"
 #include	"window.h"
-#define DEBUG
+//#define DEBUG
 
 // Je crois que le mutex est inutile 
 static pthread_mutex_t mutex_iReSend = PTHREAD_MUTEX_INITIALIZER;
 
 void bug(char *s)
 {
-	perror(s);
+	fprintf(stderr,"%s",s);
 	fflush(stderr);
 }
 
@@ -35,7 +35,9 @@ void* receive_ack(void* arg){
 	while(1){
 		if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr *) &(((ArgAck*)(arg))->si_other), &(((ArgAck*)(arg))->slen)) == -1) bug("ack recvfrom()");
 
+#ifdef DEBUG
 		fprintf(stderr, "ack n° %llu recu\n",p.numPacket);
+#endif
 		pTable[p.numPacket].p.ack = 1;
 		pthread_mutex_lock(&mutex_iReSend); // lock
 		iReSendCpy = *pReSend;
@@ -109,11 +111,16 @@ int main(int argc, char **argv)
 				p.source = getpid();
 				p.ack = 1;
 
-				//now reply the client with the ENTETE only
-				//if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
-
 				// Fonction DELIVER a B
 				puts(p.message);
+				fflush(stdout);
+
+
+				//now reply the client with the ENTETE only
+				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+#ifdef DEBUG
+				fprintf("### CANAL B: ack n°%d sent to A\n",p.numPacket);
+#endif
 				Tab[p.numPacket%WINDOW_SIZE] = 1;
 				oldWaitingAck ++;
 
@@ -138,7 +145,7 @@ int main(int argc, char **argv)
 		uint32_t iSend=0;
 		uint32_t iReSend=0;
 		Time currentTime;
-		gettimeofday(&currentTime,NULL);
+		gettimeofday(&currentTime, NULL);
 
 		// Init the connection by sending a message and waiting for an answer
 		//handshakeClient(s, &si_other);
@@ -182,8 +189,8 @@ int main(int argc, char **argv)
 				if(iMemorize<iReSend+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) bug("Erreur fgets\n");
-						bug("Canal 1 : EOF Received\n");
-						stop=1;
+						//bug("Canal 1 : EOF Received\n");
+						//stop=1;
 						continue;
 					}
 					// Filling the packet with some information and the data
