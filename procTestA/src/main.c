@@ -15,9 +15,9 @@
 // Pour le seed de random
 #include	<time.h>
 
-#define MAX_TOSEND_BUFFER 2048
+#define MAX_TOSEND_BUFFER 4096
 
-#define DEBUG
+//#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
