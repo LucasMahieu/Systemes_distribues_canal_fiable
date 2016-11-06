@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 	//Si c'est un server : coté de B par convention
 	if(!strcmp(argv[1],"0")){
 
-		// Sockaddr to recevie data
+		// Sockaddr to receive data
 		Sockaddr_in si_me;
 		memset((char *) &si_me, 0, sizeof(si_me)); 		// zero out the structure
 		si_me.sin_family = AF_INET;
@@ -104,11 +104,11 @@ int main(int argc, char **argv)
 #ifdef DEBUG 
 			fprintf(stderr, "### CANAL de B\n");
 			fprintf(stderr, "L'en tête est : (%u %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
-			fprintf(stderr, "Le message que l'on vient d'envoyer : %s\n", p.message);
+			fprintf(stderr, "Le message que l'on vient de recevoir : %s\n", p.message);
 			fflush(stderr);
 #endif
 			int check_in_window = in_window(oldWaitingAck, p.numPacket);
-			if (check_in_window==1) {
+			if (check_in_window==1) { // number of the packet is in the right window
 				p.source = getpid();
 				p.ack = 1;
 				p.size = 0;
@@ -128,8 +128,8 @@ int main(int argc, char **argv)
 				//now reply the client with the same data
 				memset(p.message,'\0', MAX_BUFLEN);
 
-			} else if (check_in_window==0) { // packet number too low, need to resend the ack
-				//if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()"); // faux
+			} else if (check_in_window==0) { // packet number too low, need to resend the ack to canalA
+				//if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 
 			} else { // packet nummber too high, do nothing
 
