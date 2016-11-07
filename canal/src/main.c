@@ -1,17 +1,17 @@
 #ifndef STRUCTURE
 #define STRUCTURE
 
-#include	<stdint.h>
+#include <stdint.h>
 #include <inttypes.h>
-#include	<unistd.h>
+#include <unistd.h>
 // to pull the pipe
-#include	<poll.h>
-#include	<pthread.h>
+#include <poll.h>
+#include <pthread.h>
 
 #include "structure.h"
 #include "receive.h"
 #include "receive_ack.h"
-#include	"window.h"
+#include "window.h"
 #define DEBUG
 
 // Je crois que le mutex est inutile 
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 	//Si c'est un server : coté de B par convention
 	if(!strcmp(argv[1],"0")){
 
-		// Sockaddr to recevie data
+		// Sockaddr to receive data
 		Sockaddr_in si_me;
 		memset((char *) &si_me, 0, sizeof(si_me)); 		// zero out the structure
 		si_me.sin_family = AF_INET;
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 		si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
 		//bind socket to port
-		if(bind(s , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) bug("bind");
+		if(bind(s, (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) bug("bind");
 
 		// Wait for the initialization message
 		// Does not work atm
@@ -104,10 +104,11 @@ int main(int argc, char **argv)
 #ifdef DEBUG 
 			fprintf(stderr, "### CANAL de B\n");
 			fprintf(stderr, "L'en tête est : (%u %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
-			fprintf(stderr, "Le message que l'on vient d'envoyer : %s\n", p.message);
+			fprintf(stderr, "Le message que l'on vient de recevoir : %s\n", p.message);
 			fflush(stderr);
 #endif
-			if (in_window(oldWaitingAck, p.numPacket)) {
+			int check_in_window = in_window(oldWaitingAck, p.numPacket);
+			if (check_in_window==1) { // number of the packet is in the right window
 				p.source = getpid();
 				p.ack = 1;
 				p.size = 0;
@@ -122,11 +123,16 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 				//fprintf(stderr, "### CANAL B: ack n°%llu sent to A\n",p.numPacket);
 #endif
-				Tab[p.numPacket%WINDOW_SIZE] = 1;
-				oldWaitingAck ++;
+				update_Tab(&oldWaitingAck, p.numPacket, Tab); // update the Tab and the oldWaitingAck value
 
 				//now reply the client with the same data
 				memset(p.message,'\0', MAX_BUFLEN);
+
+			} else if (check_in_window==0) { // packet number too low, need to resend the ack to canalA
+				//if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+
+			} else { // packet nummber too high, do nothing
+
 			}
 		}
 		close(s);
@@ -159,7 +165,7 @@ int main(int argc, char **argv)
 		arg_thread.si_other = si_other;
 		arg_thread.slen = slen;
 		arg_thread.s = s;
-		if (pthread_create(&receive_thread, NULL, receive_ack, (void*)&arg_thread)) bug("pthread cread failure: ");
+		if (pthread_create(&receive_thread, NULL, receive_ack, (void*)&arg_thread)) bug("pthread create failure: ");
 		
 		// Processus d'envoi des messages
 		// structure à donner à poll() pour savoir si il y a des data à lire 
