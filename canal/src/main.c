@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 
 
 				//now reply the client with the ENTETE only
-				//if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 #ifdef DEBUG
 				//fprintf(stderr, "### CANAL B: ack n°%llu sent to A\n",p.numPacket);
 #endif
