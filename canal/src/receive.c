@@ -14,7 +14,7 @@ uint8_t in_window(uint64_t last_number, uint64_t numPacket) {
 	}
 }
 
-// attention, il faudrait que le primier packet soit le numero 1
+// attention, il faudrait que le premier packet soit le numero 1
 uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab) {
 	if (Tab[numPacket%WINDOW_SIZE]==0) { // si c'est le premier packet
 		Tab[numPacket%WINDOW_SIZE] = numPacket;
