@@ -105,6 +105,8 @@ int main(int argc, char **argv)
 			fprintf(stderr, "### CANAL de B\n");
 			fprintf(stderr, "L'en tête est : (%u %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
 			fprintf(stderr, "Le message que l'on vient de recevoir : %s\n", p.message);
+			fprintf(stderr, "oldWaitingAck = %"PRIu64" \n", oldWaitingAck);
+
 			fflush(stderr);
 #endif
 			uint8_t check_in_window = in_window(oldWaitingAck, p.numPacket);
@@ -126,15 +128,17 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 				//fprintf(stderr, "### CANAL B: ack n°%llu sent to A\n",p.numPacket);
 #endif
-				// Clear message
-				memset(p.message,'\0', MAX_BUFLEN);
 
 			} else if (check_in_window==1) { // packet number too low, need to resend the ack to canalA
-				//if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 
 			} else { // packet nummber too high, do nothing
 
 			}
+
+
+			// Clear message
+			memset(p.message,'\0', MAX_BUFLEN);
 		}
 		close(s);
 	}
@@ -214,10 +218,10 @@ int main(int argc, char **argv)
 					windowTable[iMemorize%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
 					iMemorize++;
 #ifdef DEBUG
-					printf("### CANAL A\n");
-					printf("L'en tête est : (%u, %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
-					printf("Le message que l'on viens de recevoir de A : %s\n", p.message);
-					fflush(stdout);
+					// printf("### CANAL A\n");
+					// printf("L'en tête est : (%u, %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
+					// printf("Le message que l'on viens de recevoir de A : %s\n", p.message);
+					// fflush(stdout);
 #endif
 				}else{
 					pthread_mutex_unlock(&mutex_iReSend); // unlock
@@ -232,7 +236,7 @@ int main(int argc, char **argv)
 				windowTable[iReSend%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
 				windowTable[iReSend%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
 				//send the message sur le canal
-				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+6, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
 				printf("### CANAL A\n");
 				printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
@@ -247,7 +251,7 @@ int main(int argc, char **argv)
 				windowTable[iSend%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
 				iSend++;
 				//send the message sur le canal
-				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size), 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+6, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
 				printf("### CANAL A\n");
 				printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
