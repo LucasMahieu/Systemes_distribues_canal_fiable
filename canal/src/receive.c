@@ -24,7 +24,7 @@ uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab) {
 		int i = 1;
 		Tab[numPacket%WINDOW_SIZE] = numPacket;
 		while (Tab[(i+(*last_number))%WINDOW_SIZE]==*last_number+i) {
-			*last_number ++;
+			*last_number +=1;
 		}
 		return 0;
 	}

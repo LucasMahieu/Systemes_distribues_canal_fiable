@@ -126,14 +126,13 @@ int main(int argc, char **argv)
 				update_Tab(&oldWaitingAck, p.numPacket, Tab); // update the Tab and the oldWaitingAck value
 
 				//now reply the client with the same data
-				memset(p.message,'\0', MAX_BUFLEN);
 
 			} else if (check_in_window==0) { // packet number too low, need to resend the ack to canalA
 				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
-
 			} else { // packet nummber too high, do nothing
 
 			}
+			memset(p.message,'\0', MAX_BUFLEN);
 		}
 		close(s);
 	}
