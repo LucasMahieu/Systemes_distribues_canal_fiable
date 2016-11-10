@@ -17,7 +17,7 @@
 
 #define MAX_TOSEND_BUFFER 4096
 
-//#define DEBUG
+#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -64,8 +64,9 @@ int main(int argc, char **argv)
 
 	// processus père : C'est le processus A qui envoie des msg au canal (son fils)
 	} else {
-		char toSendBuffer[MAX_TOSEND_BUFFER];
 		srand(time(NULL));
+
+		char toSendBuffer[MAX_TOSEND_BUFFER];
 		FILE* fIN;
 		if((fIN = fopen("procTestA/data/toSend.txt","r"))==NULL) bug("Erreur dans fopen fIN\n");
 
@@ -73,6 +74,7 @@ int main(int argc, char **argv)
 		if((fOUT=fdopen(tube_AtoCanal[1],"w"))==NULL) bug("Erreur fOUT prog A");
 
 		volatile uint8_t stop=0;
+		
 		// Fermeture des fd inutile
 		close(tube_AtoCanal[0]);
 		close(tube_CanaltoA[1]);
@@ -83,17 +85,17 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Fermeture de l'entrée du tube Canal to A dans le proc pere (pid = %d)\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
-		sleep(5);
+		sleep(1);
 		while(!stop){
 			if(fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN)==NULL){
-				bug("PROC A : No more data, EOF read\n");
+				bug("## PROC A : No more data, EOF read\n");
 				stop=1;
 				continue;
 			}
 #ifdef DEBUG
-			bug("### Proc A\n");
-			fprintf(stderr,"A envoie le msg suivant à B: %s\n",toSendBuffer);
-			fflush(stderr);
+			//bug("### Proc A\n");
+			//fprintf(stderr,"A envoie le msg suivant à B: %s\n",toSendBuffer);
+			//fflush(stderr);
 #endif
 			// fonction que doit appeler A pour envoyer des données à B par le canal
 			fwrite(toSendBuffer, 1, strlen(toSendBuffer), fOUT);
@@ -101,7 +103,7 @@ int main(int argc, char **argv)
 			memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
 			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
 			// on pause quelques sec
-			sleep(rand()%2);
+			//sleep(rand()%2);
 		}
 		fclose(fIN);
 		fclose(fOUT);

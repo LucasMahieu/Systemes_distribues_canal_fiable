@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 			// le canal va faire un déliver et on recoie les données avec read
 			read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
 #ifdef DEBUG
-			printf("B a reçu de A : %s \n",receiveBuffer);
+			printf("## B à reçu : '%s' \n",receiveBuffer);
 #endif
 			fwrite(receiveBuffer,sizeof(*receiveBuffer),strlen(receiveBuffer), fOUT);
 			fflush(fOUT);

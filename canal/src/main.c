@@ -89,6 +89,7 @@ int main(int argc, char **argv)
 
 		// Init the Tab to store messages before delivering them
 		uint64_t Tab[WINDOW_SIZE];	// init tab 
+		uint8_t check_in_window ;
 
 		Packet p;
 		uint64_t oldWaitingAck = 0;
@@ -104,15 +105,18 @@ int main(int argc, char **argv)
 #ifdef DEBUG 
 			fprintf(stderr, "### CANAL de B\n");
 			fprintf(stderr, "L'en tête est : (%u %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
-			fprintf(stderr, "Le message que l'on vient de recevoir : %s\n", p.message);
 			fprintf(stderr, "oldWaitingAck = %"PRIu64" \n", oldWaitingAck);
-
+			fprintf(stderr, "Le message reçu : %s\n", p.message);
 			fflush(stderr);
 #endif
-			uint8_t check_in_window = in_window(oldWaitingAck, p.numPacket);
-			if (check_in_window==0) { // number of the packet is in the right window
-				if (update_Tab(&oldWaitingAck, p.numPacket, Tab)==0) { 	// if the packet has not been received yet, deliver it to B
-																		// + update the Tab and the oldWaitingAck value
+			check_in_window = in_window(oldWaitingAck, p.numPacket);
+
+			// number of the packet is in the right window
+			if (check_in_window==1) { 
+				// if the packet has not been received yet, deliver it to B
+				// + update the Tab and the oldWaitingAck value
+				if (update_Tab(&oldWaitingAck, p.numPacket, Tab)==0) { 	
+					
 					// Fonction DELIVER a B
 					puts(p.message);
 					fflush(stdout);
@@ -123,21 +127,20 @@ int main(int argc, char **argv)
 				p.ack = 1;
 				p.size = 0;
 
-				//now reply the client
+				//now reply the client with the ack
 				if (sendto(s, &p, sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 #ifdef DEBUG
 				//fprintf(stderr, "### CANAL B: ack n°%llu sent to A\n",p.numPacket);
 #endif
-				update_Tab(&oldWaitingAck, p.numPacket, Tab); // update the Tab and the oldWaitingAck value
-
-				//now reply the client with the same data
-
 			} else if (check_in_window==0) { // packet number too low, need to resend the ack to canalA
 				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
-			} else { // packet nummber too high, do nothing
-
+#ifdef DEBUG
+				//fprintf(stderr, "### CANAL B: ack n°%llu RE sent to A\n",p.numPacket);
+#endif
+			} else { 
+				// packet nummber too high, do nothing
 			}
-			// Clear message
+			// Clear message of the packet
 			memset(p.message,'\0', MAX_BUFLEN);
 		}
 		close(s);
@@ -198,7 +201,6 @@ int main(int argc, char **argv)
 #endif
 			}else{
 				// On test si il y a assez de place pour le mémoriser 
-				//
 				if(iMemorize<iReSend+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) bug("## CANAL A: Erreur fgets\n");
@@ -241,7 +243,6 @@ int main(int argc, char **argv)
 				printf("### CANAL A\n");
 				printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
 				printf("Message RE envoyé: %s\n", toSendp->message);
-				fflush(stdout);
 #endif
 			}else if(iSend<iMemorize){
 				// Si on a pas de msg qui ont dépassé le timeout, on envoie le plus vieux à envoyer
@@ -256,11 +257,11 @@ int main(int argc, char **argv)
 				printf("### CANAL A\n");
 				printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
 				printf("Message envoyé : %s\n", toSendp->message);
-				fflush(stdout);
 #endif
 			}
 			//clear the buffer by filling null, it might have previously received data
 			memset(p.message,'\0', MAX_BUFLEN);
+			fflush(stdout);
 		}
 		pthread_cancel(receive_thread);
 		if(pthread_join(receive_thread,NULL)) bug("pthread join failure: ");
