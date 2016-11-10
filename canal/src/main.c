@@ -107,7 +107,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "L'en tête est : (%u %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
 			fprintf(stderr, "oldWaitingAck = %"PRIu64" \n", oldWaitingAck);
 			fprintf(stderr, "Le message reçu : %s\n", p.message);
-			fflush(stderr);
 #endif
 			check_in_window = in_window(oldWaitingAck, p.numPacket);
 
@@ -120,6 +119,8 @@ int main(int argc, char **argv)
 					// Fonction DELIVER a B
 					puts(p.message);
 					fflush(stdout);
+
+					fprintf(stderr, "Message délivré\n");
 				}
 
 				// Format the packet to fit a ACK
@@ -130,18 +131,19 @@ int main(int argc, char **argv)
 				//now reply the client with the ack
 				if (sendto(s, &p, sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 #ifdef DEBUG
-				//fprintf(stderr, "### CANAL B: ack n°%llu sent to A\n",p.numPacket);
+				fprintf(stderr, "Message n°%llu ack\n",p.numPacket);
 #endif
 			} else if (check_in_window==0) { // packet number too low, need to resend the ack to canalA
 				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 #ifdef DEBUG
-				//fprintf(stderr, "### CANAL B: ack n°%llu RE sent to A\n",p.numPacket);
+				fprintf(stderr, "Message n°%llu RE ack\n",p.numPacket);
 #endif
 			} else { 
 				// packet nummber too high, do nothing
 			}
 			// Clear message of the packet
 			memset(p.message,'\0', MAX_BUFLEN);
+			fflush(stderr);
 		}
 		close(s);
 	}
@@ -197,7 +199,7 @@ int main(int argc, char **argv)
 		while(!stop){
 			if(poll(pfd,1,0)<1){
 #ifdef DEBUG 
-				//bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
+				bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
 #endif
 			}else{
 				// On test si il y a assez de place pour le mémoriser 
@@ -220,10 +222,9 @@ int main(int argc, char **argv)
 					windowTable[iMemorize%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
 					iMemorize++;
 #ifdef DEBUG
-					// printf("### CANAL A\n");
-					// printf("L'en tête est : (%u, %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
-					// printf("Le message que l'on viens de recevoir de A : %s\n", p.message);
-					// fflush(stdout);
+					 printf("### CANAL A\n");
+					 printf("Message reçu de A: '%s'\n", p.message);
+					 fflush(stdout);
 #endif
 				}else{
 					pthread_mutex_unlock(&mutex_iReSend); // unlock
@@ -232,7 +233,7 @@ int main(int argc, char **argv)
 			}
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
 			// On test si le plus vieux des msg non ack a dépassé son timeout
-			if (windowTable[iReSend%WINDOW_SIZE].timeout.tv_sec < currentTime.tv_sec || windowTable[iReSend].timeout.tv_usec < currentTime.tv_usec){
+			if (windowTable[iReSend%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec && windowTable[iReSend].timeout.tv_usec <= currentTime.tv_usec){
 				toSendp = &(windowTable[iReSend%WINDOW_SIZE].p);
 				gettimeofday(&currentTime,NULL);
 				windowTable[iReSend%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
