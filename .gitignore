@@ -5,3 +5,4 @@ myProcTestA
 myProcTestB
 .DS_Store
 doc/*
+*.txt
