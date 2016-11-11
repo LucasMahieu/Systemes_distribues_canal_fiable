@@ -36,14 +36,14 @@ void* receive_ack(void* arg){
 		if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr *) &(((ArgAck*)(arg))->si_other), &(((ArgAck*)(arg))->slen)) == -1) bug("ack recvfrom()");
 
 #ifdef DEBUG
-		fprintf(stderr, "ack n° %llu recu\n",p.numPacket);
+		fprintf(stderr, "ack n° %llu recu\n", p.numPacket);
 #endif
-		pTable[p.numPacket].p.ack = 1;
+		pTable[p.numPacket%WINDOW_SIZE].p.ack = 1;
 		pthread_mutex_lock(&mutex_iReSend); // lock
 		iReSendCpy = *pReSend;
 		pthread_mutex_unlock(&mutex_iReSend); // unlock
 		if(p.numPacket==iReSendCpy){
-			while(pTable[iReSendCpy].p.ack!=0){
+			while(pTable[iReSendCpy%WINDOW_SIZE].p.ack!=0){
 				iReSendCpy++;
 			}
 			pthread_mutex_lock(&mutex_iReSend); // lock
@@ -164,6 +164,8 @@ int main(int argc, char **argv)
 		uint32_t iMemorize=0;
 		uint32_t iSend=0;
 		uint32_t iReSend=0;
+		uint32_t iReSendCpy = 0;
+
 		Time currentTime;
 		gettimeofday(&currentTime, NULL);
 
@@ -206,8 +208,12 @@ int main(int argc, char **argv)
 				//bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
 #endif
 			}else{
+				pthread_mutex_lock(&mutex_iReSend); // lock
+				iReSendCpy = iReSend;
+				pthread_mutex_unlock(&mutex_iReSend); // unlock
+
 				// On test si il y a assez de place pour le mémoriser 
-				if(iMemorize<iReSend+WINDOW_SIZE){
+				if(iMemorize<iReSendCpy+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) bug("## CANAL A: Erreur fgets\n");
 						//bug("Canal 1 : EOF Received\n");
@@ -222,32 +228,44 @@ int main(int argc, char **argv)
 					// On mémorise le packet reçu pour l'envoyer plus tard
 					windowTable[iMemorize%WINDOW_SIZE].p = p;
 					// Mise à jour du temps
-					gettimeofday(&currentTime,NULL);
+					update_timeout(&(windowTable[iMemorize%WINDOW_SIZE]), &currentTime); 
+
 					// Calcul du timeout du nouveau packet
-					windowTable[iMemorize%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
-					windowTable[iMemorize%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
+					//gettimeofday(&currentTime,NULL);
+					//if(currentTime.tv_usec + TIMEOUT_WAIT_ACK > MAX_TV_USEC){
+					//	windowTable[iMemorize%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec + 1;
+					//	windowTable[iMemorize%WINDOW_SIZE].timeout.tv_usec = (currentTime.tv_usec + TIMEOUT_WAIT_ACK)%MAX_TV_USEC;
+					//}else{
+					//windowTable[iMemorize%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
+					//windowTable[iMemorize%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
+					//}
 
 					iMemorize++;
 #ifdef DEBUG
-					 printf("### CANAL A\n");
-					 printf("Message reçu de A: '%s'\n", p.message);
-					 fflush(stdout);
+					printf("### CANAL A\n");
+					printf("Message reçu de A: '%s'\n", p.message);
+					fflush(stdout);
 #endif
 				}else{
-					//pthread_mutex_unlock(&mutex_iReSend); // unlock
-					// Si on a pas fait le if, il faut quand même mettre à jour
 					gettimeofday(&currentTime,NULL);
 				}
 			}
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
 			// On test si le plus vieux des msg non ack a dépassé son timeout
-			if (windowTable[iReSend%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec && windowTable[iReSend].timeout.tv_usec <= currentTime.tv_usec){
+			if (windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec && windowTable[iReSendCpy].timeout.tv_usec <= currentTime.tv_usec){
 				// On prend le packet à envoyer
-				toSendp = &(windowTable[iReSend%WINDOW_SIZE].p);
+				toSendp = &(windowTable[iReSendCpy%WINDOW_SIZE].p);
 				// On maj l'heure pour connaitre le nouveau timeout
-				gettimeofday(&currentTime,NULL);
-				windowTable[iReSend%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
-				windowTable[iReSend%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
+				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE]), &currentTime); 
+
+				//gettimeofday(&currentTime,NULL);
+				//if(currentTime.tv_usec + TIMEOUT_WAIT_ACK > MAX_TV_USEC){
+				//	windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec + 1;
+				//	windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec = (currentTime.tv_usec + TIMEOUT_WAIT_ACK)%MAX_TV_USEC;
+				//}else{
+				//	windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
+				//	windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_usec + TIMEOUT_WAIT_ACK;
+				//}
 				// RE send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+6, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
@@ -258,10 +276,11 @@ int main(int argc, char **argv)
 			}else if(iSend<iMemorize){
 				// Si on a pas de msg qui ont dépassé le timeout, on envoie le plus vieux à envoyer
 				toSendp = &(windowTable[iSend%WINDOW_SIZE].p);
-				// On maj l'heure pour connaitre le nouveau timeout
-				gettimeofday(&currentTime,NULL);
-				windowTable[iSend%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
-				windowTable[iSend%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
+				
+				// On maj le timeout du packet à envoyé dans le cas ou l'on 
+				// doit le re-envoyer plus tard
+				update_timeout(&(windowTable[iSend%WINDOW_SIZE]), &currentTime); 
+
 				iSend++;
 				//send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+6, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
