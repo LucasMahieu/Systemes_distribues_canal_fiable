@@ -149,6 +149,9 @@ int main(int argc, char **argv)
 	}
 	// Si c'est un client : il sera du coté de A
 	else if(!strcmp(argv[1],"1")){
+#ifdef DEBUG
+	bug("### CANAL de A -- Thread principal d'envoi de données\n");
+#endif
 
 		memset((char *) &si_other, 0, sizeof(si_other));
 		si_other.sin_family = AF_INET;
@@ -195,7 +198,7 @@ int main(int argc, char **argv)
 		p.ack = 0;							// is ack or not
 		p.size=0;
 
-				// Processus A va faire send(m), et gets recoit m
+		// Processus A va faire send(m), et gets recoit m
 		while(!stop){
 			// Fonction qui test si il y a des choses à lire dans le pipe
 			if(poll(pfd,1,0)<1){
