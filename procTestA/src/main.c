@@ -85,17 +85,17 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Fermeture de l'entrée du tube Canal to A dans le proc pere (pid = %d)\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
-		sleep(1);
+		sleep(5);
 		while(!stop){
 			if(fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN)==NULL){
-				bug("## PROC A : No more data, EOF read\n");
-				stop=1;
+				//bug("## PROC A : No more data, EOF read\n");
+				//stop=1;
 				continue;
 			}
 #ifdef DEBUG
-			//bug("### Proc A\n");
-			//fprintf(stderr,"A envoie le msg suivant à B: %s\n",toSendBuffer);
-			//fflush(stderr);
+			bug("### Proc A\n");
+			fprintf(stderr,"A envoie: '%s' \n",toSendBuffer);
+			fflush(stderr);
 #endif
 			// fonction que doit appeler A pour envoyer des données à B par le canal
 			fwrite(toSendBuffer, 1, strlen(toSendBuffer), fOUT);
@@ -104,6 +104,7 @@ int main(int argc, char **argv)
 			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
 			// on pause quelques sec
 			//sleep(rand()%2);
+			sleep(1);
 		}
 		fclose(fIN);
 		fclose(fOUT);
