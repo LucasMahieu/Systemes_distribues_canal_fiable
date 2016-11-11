@@ -17,7 +17,7 @@
 
 #define MAX_RECEIVED_BUFFER 4096
 
-//#define DEBUG
+#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 		printf("Fermeture de la sortie du tube B to Canal dans le proc pere (pid = %d)\n", getpid());
 		printf("Fermeture de l'entrée du tube Canal to B dans le proc pere (pid = %d)\n\n", getpid());
 #endif
-		// Petit dodo pour être sur que tout le monde soit bien près pour le test
+		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
 		sleep(1);
 		while(1){
 			// le canal va faire un déliver et on recoie les données avec read
