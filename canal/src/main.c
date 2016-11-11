@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 
 #ifdef DEBUG 
 			fprintf(stderr, "### CANAL de B\n");
-			fprintf(stderr, "L'en tête est : (%u %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
+			fprintf(stderr, "L'en tête est : (%u, %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
 			fprintf(stderr, "oldWaitingAck = %"PRIu64" \n", oldWaitingAck);
 			fprintf(stderr, "Le message reçu : %s\n", p.message);
 #endif
@@ -202,16 +202,19 @@ int main(int argc, char **argv)
 
 		// Processus A va faire send(m), et gets recoit m
 		while(!stop){
+
+			// MAJ iReSendCpy
+			pthread_mutex_lock(&mutex_iReSend); // lock
+			iReSendCpy = iReSend;
+			pthread_mutex_unlock(&mutex_iReSend); // unlock
+
+
 			// Fonction qui test si il y a des choses à lire dans le pipe
 			if(poll(pfd,1,0)<1){
 #ifdef DEBUG 
 				//bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
 #endif
 			}else{
-				pthread_mutex_lock(&mutex_iReSend); // lock
-				iReSendCpy = iReSend;
-				pthread_mutex_unlock(&mutex_iReSend); // unlock
-
 				// On test si il y a assez de place pour le mémoriser 
 				if(iMemorize<iReSendCpy+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
@@ -247,11 +250,12 @@ int main(int argc, char **argv)
 					fflush(stdout);
 #endif
 				}else{
-					gettimeofday(&currentTime,NULL);
+
 				}
 			}
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
 			// On test si le plus vieux des msg non ack a dépassé son timeout
+			gettimeofday(&currentTime,NULL);
 			if (windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec && windowTable[iReSendCpy].timeout.tv_usec <= currentTime.tv_usec){
 				// On prend le packet à envoyer
 				toSendp = &(windowTable[iReSendCpy%WINDOW_SIZE].p);
@@ -276,7 +280,6 @@ int main(int argc, char **argv)
 			}else if(iSend<iMemorize){
 				// Si on a pas de msg qui ont dépassé le timeout, on envoie le plus vieux à envoyer
 				toSendp = &(windowTable[iSend%WINDOW_SIZE].p);
-				
 				// On maj le timeout du packet à envoyé dans le cas ou l'on 
 				// doit le re-envoyer plus tard
 				update_timeout(&(windowTable[iSend%WINDOW_SIZE]), &currentTime); 
