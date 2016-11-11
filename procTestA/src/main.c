@@ -17,7 +17,7 @@
 
 #define MAX_TOSEND_BUFFER 4096
 
-#define DEBUG
+//#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Fermeture de l'entrée du tube Canal to A dans le proc pere (pid = %d)\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
-		sleep(5);
+		sleep(2);
 		while(!stop){
 			if(fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN)==NULL){
 				//bug("## PROC A : No more data, EOF read\n");
