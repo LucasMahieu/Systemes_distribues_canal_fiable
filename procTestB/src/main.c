@@ -68,8 +68,7 @@ int main(int argc, char **argv)
 		close(tube_BtoCanal[0]);
 		close(tube_BtoCanal[1]);
 #ifdef DEBUG
-		printf("Fermeture de la sortie du tube B to Canal dans le proc pere (pid = %d)\n", getpid());
-		printf("Fermeture de l'entrée du tube Canal to B dans le proc pere (pid = %d)\n\n", getpid());
+		fprintf(stderr,"### PROC B: pid: %d)\n\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
 		sleep(1);
@@ -77,7 +76,8 @@ int main(int argc, char **argv)
 			// le canal va faire un déliver et on recoie les données avec read
 			read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
 #ifdef DEBUG
-			printf("## B à reçu : '%s' \n",receiveBuffer);
+			fprintf(stderr, "#### B à reçu : %s \n",receiveBuffer);
+			fflush(stderr);
 #endif
 			fwrite(receiveBuffer,sizeof(*receiveBuffer),strlen(receiveBuffer), fOUT);
 			fflush(fOUT);

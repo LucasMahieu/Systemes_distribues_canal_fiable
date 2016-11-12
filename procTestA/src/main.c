@@ -80,9 +80,7 @@ int main(int argc, char **argv)
 		close(tube_CanaltoA[1]);
 		close(tube_CanaltoA[0]);
 #ifdef DEBUG
-		fprintf(stderr, "### Proc A\n");
-		fprintf(stderr, "Fermeture de la sortie du tube A to Canal dans le proc pere (pid = %d)\n", getpid());
-		fprintf(stderr, "Fermeture de l'entrée du tube Canal to A dans le proc pere (pid = %d)\n", getpid());
+		fprintf(stderr, "### Proc A: pid= %d\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
 		sleep(2);
@@ -93,8 +91,7 @@ int main(int argc, char **argv)
 				continue;
 			}
 #ifdef DEBUG
-			bug("### Proc A\n");
-			fprintf(stderr,"A envoie: '%s' \n",toSendBuffer);
+			fprintf(stderr,"A envoie: %s \n",toSendBuffer);
 			fflush(stderr);
 #endif
 			// fonction que doit appeler A pour envoyer des données à B par le canal

@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 			if ((recv_len = recvfrom(s, &p, sizeof(p), 0, (struct sockaddr *) &si_other, &slen)) == -1) bug("recvfrom()");
 
 #ifdef DEBUG 
-			fprintf(stderr, "### CANAL de B\n");
+			fprintf(stderr, "### CANAL de B ########\n");
 			fprintf(stderr, "L'en tête est : (%u %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
 			fprintf(stderr, "oldWaitingAck = %"PRIu64" \n", oldWaitingAck);
 			fprintf(stderr, "Le message reçu : %s\n", p.message);
@@ -120,7 +120,9 @@ int main(int argc, char **argv)
 					puts(p.message);
 					fflush(stdout);
 
+#ifdef DEBUG
 					fprintf(stderr, "Message délivré\n");
+#endif
 				}
 
 				// Format the packet to fit a ACK
@@ -143,7 +145,10 @@ int main(int argc, char **argv)
 			}
 			// Clear message of the packet
 			memset(p.message,'\0', MAX_BUFLEN);
+#ifdef DEBUG
+			fprintf(stderr, "----------------------\n");
 			fflush(stderr);
+#endif
 		}
 		close(s);
 	}
@@ -233,9 +238,7 @@ int main(int argc, char **argv)
 					update_timeout(&(windowTable[iMemorize%WINDOW_SIZE]), &currentTime); 
 					iMemorize++;
 #ifdef DEBUG
-					printf("### CANAL A\n");
-					printf("Message reçu de A: '%s'\n", p.message);
-					fflush(stdout);
+					//printf("Message reçu de A: '%s'\n", p.message);
 #endif
 				}else{
 					gettimeofday(&currentTime,NULL);
@@ -257,9 +260,10 @@ int main(int argc, char **argv)
 				// RE send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+6, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
-				printf("### CANAL A\n");
-				printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
-				printf("Message RE envoyé: %s\n", toSendp->message);
+				fprintf(stderr,"### CANAL A     ##################\n");
+				fprintf(stderr,"L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
+				fprintf(stderr,"Message RE envoyé: %s\n", toSendp->message);
+				fprintf(stderr,"----------------------------------\n");
 #endif
 			}else if(iSend<iMemorize){
 				// Si on a pas de msg qui ont dépassé le timeout, on envoie le plus vieux à envoyer
@@ -273,14 +277,17 @@ int main(int argc, char **argv)
 				//send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+6, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
-				printf("### CANAL A\n");
+				fprintf(stderr,"### CANAL A     ##################\n");
 				printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
 				printf("Message envoyé : %s\n", toSendp->message);
+				fprintf(stderr,"----------------------------------\n");
 #endif
 			}
 			//clear the buffer by filling null, it might have previously received data
 			memset(p.message,'\0', MAX_BUFLEN);
+#ifdef DEBUG
 			fflush(stdout);
+#endif
 		}
 		pthread_cancel(receive_thread);
 		if(pthread_join(receive_thread,NULL)) bug("pthread join failure: ");
