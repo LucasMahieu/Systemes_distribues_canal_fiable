@@ -36,7 +36,7 @@ void* receive_ack(void* arg){
 		if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr *) &(((ArgAck*)(arg))->si_other), &(((ArgAck*)(arg))->slen)) == -1) bug("ack recvfrom()");
 
 #ifdef DEBUG
-		fprintf(stderr, "ack n° %llu recu\n", p.numPacket);
+		//fprintf(stderr, "ack n° %llu recu\n", p.numPacket);
 #endif
 		pTable[p.numPacket%WINDOW_SIZE].p.ack = 1;
 		pthread_mutex_lock(&mutex_iReSend); // lock
@@ -229,6 +229,7 @@ int main(int argc, char **argv)
 					}
 					// Filling the packet with some information and the data
 					p.size = strlen(message);
+					p.ack = 0;
 					memcpy(p.message, message, (p.size)*sizeof(char));
 					p.numPacket = currentIDPacket;
 					currentIDPacket++;
@@ -280,7 +281,7 @@ int main(int argc, char **argv)
 				fprintf(stderr,"### CANAL A     ##################\n");
 				printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
 				printf("Message envoyé : %s\n", toSendp->message);
-				fprintf(stderr,"----------------------------------\n");
+				fprintf(stderr,"----------------------------------\n\n");
 #endif
 			}
 			//clear the buffer by filling null, it might have previously received data
