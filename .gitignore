@@ -7,3 +7,4 @@ myProcTestB
 doc/*
 *.txt
 *.swp
+procTestB/data/receive.txt
