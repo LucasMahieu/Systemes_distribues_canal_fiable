@@ -88,8 +88,8 @@ int main(int argc, char **argv)
 		sleep(2);
 		while(!stop){
 			if(fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN)==NULL){
-				//bug("## PROC A : No more data, EOF read\n");
-				//stop=1;
+				bug("## PROC A : No more data, EOF read\n");
+				stop=1;
 				continue;
 			}
 #ifdef DEBUG
@@ -98,13 +98,12 @@ int main(int argc, char **argv)
 			fflush(stderr);
 #endif
 			// fonction que doit appeler A pour envoyer des données à B par le canal
-			fwrite(toSendBuffer, 1, strlen(toSendBuffer), fOUT);
+			fwrite(toSendBuffer, sizeof(char), strlen(toSendBuffer), fOUT);
 
 			memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
 			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
 			// on pause quelques sec
 			//sleep(rand()%2);
-			sleep(1);
 		}
 		fclose(fIN);
 		fclose(fOUT);

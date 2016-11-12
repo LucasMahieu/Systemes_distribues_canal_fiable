@@ -203,16 +203,9 @@ int main(int argc, char **argv)
 		// Processus A va faire send(m), et gets recoit m
 		while(!stop){
 			// Fonction qui test si il y a des choses à lire dans le pipe
-			poll(pfd,1,0);
-			// Test, revents = 3 force à faire le else, mais de ce que je vois chez moi
-			// le fgets block, donc le poll dis vrai : le canal ne reçoit rien 
-			// de la part de procA
-			//pfd->revents = 3;
-			if(pfd->revents!=POLLIN 
-				&& pfd->revents!=POLLPRI 
-				&& pfd->revents!=(POLLIN|POLLPRI)){
+			if(poll(pfd,1,0)<1){
 #ifdef DEBUG 
-				bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
+				//bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
 #endif
 				pfd->revents = 0;
 			}else{
@@ -225,7 +218,7 @@ int main(int argc, char **argv)
 				if(iMemorize<iReSendCpy+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) bug("## CANAL A: Erreur fgets\n");
-						//bug("Canal 1 : EOF Received\n");
+						//bug("Canal A : EOF Received\n");
 						//stop=1;
 						continue;
 					}
