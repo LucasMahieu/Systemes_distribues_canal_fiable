@@ -207,18 +207,23 @@ int main(int argc, char **argv)
 
 		// Processus A va faire send(m), et gets recoit m
 		while(!stop){
+
+			// MAJ iReSendCpy
+			pthread_mutex_lock(&mutex_iReSend); // lock
+			iReSendCpy = iReSend;
+			pthread_mutex_unlock(&mutex_iReSend); // unlock
+
+
 			// Fonction qui test si il y a des choses à lire dans le pipe
 			if(poll(pfd,1,0)<1){
 #ifdef DEBUG 
 				//bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
 #endif
-				pfd->revents = 0;
 			}else{
-				pfd->revents = 0;
 				pthread_mutex_lock(&mutex_iReSend); // lock
 				iReSendCpy = iReSend;
 				pthread_mutex_unlock(&mutex_iReSend); // unlock
-
+				
 				// On test si il y a assez de place pour le mémoriser 
 				if(iMemorize<iReSendCpy+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
@@ -242,7 +247,7 @@ int main(int argc, char **argv)
 					//printf("Message reçu de A: '%s'\n", p.message);
 #endif
 				}else{
-					gettimeofday(&currentTime,NULL);
+
 				}
 			}
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
@@ -269,7 +274,6 @@ int main(int argc, char **argv)
 			}else if(iSend<iMemorize){
 				// Si on a pas de msg qui ont dépassé le timeout, on envoie le plus vieux à envoyer
 				toSendp = &(windowTable[iSend%WINDOW_SIZE].p);
-				
 				// On maj le timeout du packet à envoyé dans le cas ou l'on 
 				// doit le re-envoyer plus tard
 				update_timeout(&(windowTable[iSend%WINDOW_SIZE]), &currentTime); 

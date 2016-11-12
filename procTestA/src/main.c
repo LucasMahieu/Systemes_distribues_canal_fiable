@@ -17,7 +17,7 @@
 
 #define MAX_TOSEND_BUFFER 4096
 
-//#define DEBUG
+#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "### Proc A: pid= %d\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
-		sleep(2);
+		sleep(1);
 		while(!stop){
 			if(fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN)==NULL){
 				bug("## PROC A : No more data, EOF read\n");
@@ -91,7 +91,10 @@ int main(int argc, char **argv)
 				continue;
 			}
 #ifdef DEBUG
-			fprintf(stderr,"A envoie: %s \n",toSendBuffer);
+			bug("### Proc A\n");
+			fprintf(stderr, "-----------------------------------------------------------------------------\n");
+			fprintf(stderr,"A envoie: %s ", toSendBuffer);
+			fprintf(stderr, "-----------------------------------------------------------------------------\n");
 			fflush(stderr);
 #endif
 			// fonction que doit appeler A pour envoyer des données à B par le canal
