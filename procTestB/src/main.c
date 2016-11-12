@@ -46,8 +46,8 @@ int main(int argc, char **argv)
 		dup2(tube_CanaltoB[1],1);
 
 		// On ferme les 3 fd dont on a pas besoin
-		close(tube_BtoCanal[1]);
 		close(tube_CanaltoB[0]);
+		close(tube_BtoCanal[1]);
 		close(tube_BtoCanal[0]);
 		
 		// liste qui servira au execvp
@@ -64,8 +64,8 @@ int main(int argc, char **argv)
 		if((fOUT = fopen("procTestB/data/receive.txt","w"))==NULL) bug("Erreur dans fopen fOUT\n");
 
 		// Ferme les pipe inutiles
-		close(tube_BtoCanal[0]);
 		close(tube_CanaltoB[1]);
+		close(tube_BtoCanal[0]);
 		close(tube_BtoCanal[1]);
 #ifdef DEBUG
 		printf("Fermeture de la sortie du tube B to Canal dans le proc pere (pid = %d)\n", getpid());

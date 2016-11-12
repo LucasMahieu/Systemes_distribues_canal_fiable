@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 		uint32_t iMemorize=0;
 		uint32_t iSend=0;
 		uint32_t iReSend=0;
-		uint32_t iReSendCpy = 0;
+		volatile uint32_t iReSendCpy = 0;
 
 		Time currentTime;
 		gettimeofday(&currentTime, NULL);
@@ -203,11 +203,20 @@ int main(int argc, char **argv)
 		// Processus A va faire send(m), et gets recoit m
 		while(!stop){
 			// Fonction qui test si il y a des choses à lire dans le pipe
-			if(poll(pfd,1,0)<1){
+			poll(pfd,1,0);
+			// Test, revents = 3 force à faire le else, mais de ce que je vois chez moi
+			// le fgets block, donc le poll dis vrai : le canal ne reçoit rien 
+			// de la part de procA
+			//pfd->revents = 3;
+			if(pfd->revents!=POLLIN 
+				&& pfd->revents!=POLLPRI 
+				&& pfd->revents!=(POLLIN|POLLPRI)){
 #ifdef DEBUG 
-				//bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
+				bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
 #endif
+				pfd->revents = 0;
 			}else{
+				pfd->revents = 0;
 				pthread_mutex_lock(&mutex_iReSend); // lock
 				iReSendCpy = iReSend;
 				pthread_mutex_unlock(&mutex_iReSend); // unlock
@@ -252,7 +261,10 @@ int main(int argc, char **argv)
 			}
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
 			// On test si le plus vieux des msg non ack a dépassé son timeout
-			if (windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec && windowTable[iReSendCpy].timeout.tv_usec <= currentTime.tv_usec){
+			if (windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec 
+				&& 
+				windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec <= currentTime.tv_usec){
+
 				// On prend le packet à envoyer
 				toSendp = &(windowTable[iReSendCpy%WINDOW_SIZE].p);
 				// On maj l'heure pour connaitre le nouveau timeout

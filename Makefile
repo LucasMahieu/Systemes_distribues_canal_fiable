@@ -4,7 +4,7 @@ BUILD_DIR = build/
 SRC_DIR = src/
 H_DIR = headers/
 
-CFLAGS = -Wall -g -I$(H_DIR)
+CFLAGS = -O0 -Wall -g -I$(H_DIR)
 LDFLAGS = 
 
 
