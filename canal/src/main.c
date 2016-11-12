@@ -231,17 +231,6 @@ int main(int argc, char **argv)
 					windowTable[iMemorize%WINDOW_SIZE].p = p;
 					// Mise à jour du temps
 					update_timeout(&(windowTable[iMemorize%WINDOW_SIZE]), &currentTime); 
-
-					// Calcul du timeout du nouveau packet
-					//gettimeofday(&currentTime,NULL);
-					//if(currentTime.tv_usec + TIMEOUT_WAIT_ACK > MAX_TV_USEC){
-					//	windowTable[iMemorize%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec + 1;
-					//	windowTable[iMemorize%WINDOW_SIZE].timeout.tv_usec = (currentTime.tv_usec + TIMEOUT_WAIT_ACK)%MAX_TV_USEC;
-					//}else{
-					//windowTable[iMemorize%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
-					//windowTable[iMemorize%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_sec + TIMEOUT_WAIT_ACK;
-					//}
-
 					iMemorize++;
 #ifdef DEBUG
 					printf("### CANAL A\n");
@@ -254,7 +243,9 @@ int main(int argc, char **argv)
 			}
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
 			// On test si le plus vieux des msg non ack a dépassé son timeout
-			if (windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec 
+			if( iReSendCpy != iMemorize
+				&&
+				windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec 
 				&& 
 				windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec <= currentTime.tv_usec){
 
@@ -263,14 +254,6 @@ int main(int argc, char **argv)
 				// On maj l'heure pour connaitre le nouveau timeout
 				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE]), &currentTime); 
 
-				//gettimeofday(&currentTime,NULL);
-				//if(currentTime.tv_usec + TIMEOUT_WAIT_ACK > MAX_TV_USEC){
-				//	windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec + 1;
-				//	windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec = (currentTime.tv_usec + TIMEOUT_WAIT_ACK)%MAX_TV_USEC;
-				//}else{
-				//	windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec =  currentTime.tv_sec;
-				//	windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec =  currentTime.tv_usec + TIMEOUT_WAIT_ACK;
-				//}
 				// RE send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+6, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
