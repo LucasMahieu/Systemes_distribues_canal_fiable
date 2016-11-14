@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 #ifdef DEBUG 
 			fprintf(stderr, "### CANAL de B ########\n");
 			fprintf(stderr, "L'en tête est : (%u %"PRIu64", %u)\n", p.source, p.numPacket, p.ack);
-			fprintf(stderr, "oldWaitingAck = %"PRIu64" \n", oldWaitingAck);
+			fprintf(stderr, "oldWaitingAck = %"PRIu64", taille =  %d \n", oldWaitingAck, p.size);
 			fprintf(stderr, "Le message reçu : %s\n", p.message);
 #endif
 			check_in_window = in_window(oldWaitingAck, p.numPacket);
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 				if (update_Tab(&oldWaitingAck, p.numPacket, Tab)==0) { 	
 					
 					// Fonction DELIVER a B
-					puts(p.message);
+					fprintf(stdout, p.message);
 					fflush(stdout);
 
 #ifdef DEBUG
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
 				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE]), &currentTime); 
 
 				// RE send the message sur le canal
-				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+6, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
 				fprintf(stderr,"### CANAL A     ##################\n");
 				fprintf(stderr,"L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 
 				iSend++;
 				//send the message sur le canal
-				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+6, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
 				fprintf(stderr,"### CANAL A     ##################\n");
 				printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
