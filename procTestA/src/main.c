@@ -11,13 +11,18 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <signal.h> // pour les signaux
 #include <sys/wait.h>
 // Pour le seed de random
-#include	<time.h>
+#include <time.h>
+// Pour la structure Time
+#include <sys/time.h>
+typedef struct timeval Time;
 
 #define MAX_TOSEND_BUFFER 4096
 
 #define DEBUG
+#define PERFORMANCE
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -84,7 +89,16 @@ int main(int argc, char **argv)
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
 		sleep(1);
+
+#ifdef PERFORMANCE
+		FILE* perf;
+		if ((perf = fopen("performance.txt", "w")) == NULL) bug("Erreur dans fopen perf");
+		Time currentTime;
+		gettimeofday(&currentTime, NULL);
+#endif
+
 		while(!stop){
+
 			if(fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN)==NULL){
 				bug("## PROC A : No more data, EOF read\n");
 				stop=1;
@@ -101,13 +115,27 @@ int main(int argc, char **argv)
 			fwrite(toSendBuffer, sizeof(char), strlen(toSendBuffer), fOUT);
 
 			memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
+
 			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
 			// on pause quelques sec
 			//sleep(rand()%2);
 		}
+		kill(canal_pid, SIGTERM); // On fait un envoi de signal pour signifier au fils que c'est fini.
 		fclose(fIN);
 		fclose(fOUT);
 		close(tube_AtoCanal[1]);
+
+#ifdef PERFORMANCE
+		Time diffTime;
+		gettimeofday(&diffTime, NULL);
+		diffTime.tv_sec -= currentTime.tv_sec;
+		diffTime.tv_usec -= currentTime.tv_usec;
+		// fprintf(perf, " ",)
+		fprintf(perf, "Time to send messages from A to canal : %ld.%06ld\n", (long int) diffTime.tv_sec, (long int) diffTime.tv_usec);
+
+		fclose(perf);
+#endif
+
 		wait(NULL);
 	}
 	return 0;

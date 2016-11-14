@@ -7,15 +7,22 @@
 // to pull the pipe
 #include <poll.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include "structure.h"
 #include "receive.h"
 #include "receive_ack.h"
 #include "window.h"
+
 #define DEBUG
+
+
+
 
 // Je crois que le mutex est inutile 
 static pthread_mutex_t mutex_iReSend = PTHREAD_MUTEX_INITIALIZER;
+uint8_t EndOfProcA = 0; // Booléen pour savoir si le proc A est fini.
+
 
 void bug(char *s)
 {
@@ -53,6 +60,14 @@ void* receive_ack(void* arg){
 	}
 	pthread_exit(NULL);
 }
+
+// handler pour le signal envoyé par le proc A
+void handlerEndprocA(int numSig){
+	if (numSig==SIGTERM) {
+		EndOfProcA=1;
+	}
+}
+
 
 
 int main(int argc, char **argv)
@@ -95,8 +110,7 @@ int main(int argc, char **argv)
 		uint64_t oldWaitingAck = 0;
 
 		//keep listening for data
-		while(1)
-		{
+		while(1) {
 			//Il faudra ici, bien vider le buffer = écrire un '\0' au début
 			//Sinon quand le message est plus petite que l'ancien, on voit encore l'ancien
 			//try to receive some data, this is a blocking call
@@ -108,6 +122,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "oldWaitingAck = %"PRIu64", taille =  %d \n", oldWaitingAck, p.size);
 			fprintf(stderr, "Le message reçu : %s\n", p.message);
 #endif
+
+			if (!check_end(p)) break;
+
 			check_in_window = in_window(oldWaitingAck, p.numPacket);
 
 			// number of the packet is in the right window
@@ -150,6 +167,7 @@ int main(int argc, char **argv)
 			fflush(stderr);
 #endif
 		}
+		fprintf(stderr, "### END OF CANAL B \n");
 		close(s);
 	}
 	// Si c'est un client : il sera du coté de A
@@ -158,12 +176,22 @@ int main(int argc, char **argv)
 	bug("### CANAL de A -- Thread principal d'envoi de données\n");
 #endif
 
+		// Traitant du signal de fin de lecture de fichier
+		struct sigaction signalAction;
+		memset((char*) &signalAction, 0, sizeof(struct sigaction));
+		signalAction.sa_handler = handlerEndprocA;
+		signalAction.sa_flags = 0;
+		if (!sigaction(SIGTERM, &signalAction, NULL)) bug("Definition traitant signal");
+
+
+
 		memset((char *) &si_other, 0, sizeof(si_other));
 		si_other.sin_family = AF_INET;
 		si_other.sin_port = htons(PORT);
 
 		if (inet_aton(SERVER , &si_other.sin_addr) == 0) bug("inet_aton() failed\n");
 		
+
 		// Pour la fiabilisation du canal
 		WaitAckElement windowTable[WINDOW_SIZE]; 
 		uint32_t iMemorize=0;
@@ -228,8 +256,8 @@ int main(int argc, char **argv)
 				if(iMemorize<iReSendCpy+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) bug("## CANAL A: Erreur fgets\n");
-						//bug("Canal A : EOF Received\n");
-						//stop=1;
+						bug("Canal A : EOF Received\n");
+						stop=1;
 						continue;
 					}
 					// Filling the packet with some information and the data
@@ -288,12 +316,23 @@ int main(int argc, char **argv)
 				fprintf(stderr,"----------------------------------\n\n");
 #endif
 			}
+
 			//clear the buffer by filling null, it might have previously received data
 			memset(p.message,'\0', MAX_BUFLEN);
 #ifdef DEBUG
 			fflush(stdout);
 #endif
 		}
+
+		// On envoit le signal de fin, peut etre besoin de remplir plus de champs pour le toSend + besoin d'envoyer le message plusieurs fois peut etre
+		stop = 0;
+		toSendp->ack = 1;
+		toSendp->size = 0;
+		if (EndOfProcA) {
+			if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+			fprintf(stderr, "Ack final envoyé\n");
+		}
+
 		pthread_cancel(receive_thread);
 		if(pthread_join(receive_thread,NULL)) bug("pthread join failure: ");
 	}

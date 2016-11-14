@@ -17,7 +17,7 @@
 
 #define MAX_RECEIVED_BUFFER 4096
 
-//#define DEBUG
+#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -76,7 +76,6 @@ int main(int argc, char **argv)
 			// le canal va faire un déliver et on recoie les données avec read
 			read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
 #ifdef DEBUG
-			fprintf(stderr, "#### B à reçu : %s",receiveBuffer);
 			fflush(stderr);
 #endif
 			fwrite(receiveBuffer,sizeof(*receiveBuffer),strlen(receiveBuffer), fOUT);
