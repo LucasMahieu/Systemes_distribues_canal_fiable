@@ -24,7 +24,7 @@ static pthread_mutex_t mutex_iReSend = PTHREAD_MUTEX_INITIALIZER;
 uint8_t EndOfProcA = 0; 	// Booléen pour savoir si le proc A a fini d'envoyer tous les messages.
 uint8_t EndOfCanalA = 0;	// Booléen pour savoir si le canal A a fini d'envoyer tous les messages.
 uint8_t EndOfCanalB = 0;	// Idem
-
+uint8_t BAckedAll = 0;
 
 void bug(char *s)
 {
@@ -45,10 +45,13 @@ void* receive_ack(void* arg){
 		if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr *) &(((ArgAck*)(arg))->si_other), &(((ArgAck*)(arg))->slen)) == -1) bug("ack recvfrom()");
 
 #ifdef DEBUG
-		//fprintf(stderr, "ack n° %llu recu\n", p.numPacket);
+		fprintf(stderr, "ack n° %llu recu\n", p.numPacket);
 #endif
 		// Si on recoit un ack à 2, le canal B a tout recu
-		if (p.ack==2) EndOfCanalA=1;
+		if (p.ack==2) {
+			fprintf(stderr, "Ack final recu\n");
+			BAckedAll=1;
+		}
 
 		pTable[p.numPacket%WINDOW_SIZE].p.ack = 1;
 		pthread_mutex_lock(&mutex_iReSend); // lock
@@ -110,7 +113,7 @@ int main(int argc, char **argv)
 		// Init the Tab to store messages before delivering them
 		uint64_t Tab[WINDOW_SIZE];	// init tab 
 		uint8_t check_in_window ;
-
+		uint64_t last_packet_num = 0; // indice du dernier packet à recevoir
 		Packet p;
 		uint64_t oldWaitingAck = 0;
 
@@ -128,7 +131,20 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Le message reçu : %s\n", p.message);
 #endif
 
-			if (!check_end_of_canalA(p)) break;
+			if (!check_end_of_canalA(p)) {
+				// On renvoit le même packet pour acquiescer.
+				if (sendto(s, &p, sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+				EndOfCanalB = 1;
+				last_packet_num = p.numPacket;
+			}
+			// Si on sait quel est le dernier numéro de packet et qu'on a tout reçu, alors on peut quitter
+			if (EndOfCanalB) {
+				if ((oldWaitingAck+1)==last_packet_num){
+					if (Tab[last_packet_num]==1){
+					break;
+					}
+				}
+			}
 
 			check_in_window = in_window(oldWaitingAck, p.numPacket);
 
@@ -253,20 +269,31 @@ int main(int argc, char **argv)
 
 			// Fonction qui test si il y a des choses à lire dans le pipe
 			if(poll(pfd,1,0)<1){
-#ifdef DEBUG 
+#ifdef DEBUG
 				//bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
 #endif
 			}else{
-				pthread_mutex_lock(&mutex_iReSend); // lock
-				iReSendCpy = iReSend;
-				pthread_mutex_unlock(&mutex_iReSend); // unlock
-				
 				// On test si il y a assez de place pour le mémoriser 
 				if(iMemorize<iReSendCpy+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) bug("## CANAL A: Erreur fgets\n");
-						bug("Canal A : EOF Received\n");
-						stop=1;
+						// fprintf(stderr, "Plus de message reçu venant du proc A\n");
+						// bug("Canal A : EOF Received\n");
+
+						// On envoit le signal de fin, peut etre besoin de remplir plus de champs pour le toSend + besoin d'envoyer le message plusieurs fois peut etre
+						// On utilise le ack à 2 pour ces signaux, et on garde le numero e packet du dernier packet envoyé
+						toSendp->ack = 2;
+						toSendp->size = 0;
+						toSendp->numPacket=iMemorize-1;
+						if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+
+						// Pour finir le canal A, il faut que : il n'y ait plus de message à attraper,
+						// 										Proc A ait envoyé un signal de fin
+						//										Canal B ait reçu tous les messages
+						if (EndOfProcA && BAckedAll) {
+							fprintf(stderr, "EndOfProcA et BAckedAll -> fin de canal A\n");
+							stop=1;
+						}
 						continue;
 					}
 					// Filling the packet with some information and the data
@@ -333,28 +360,14 @@ int main(int argc, char **argv)
 #endif
 		}
 
-		// On envoit le signal de fin, peut etre besoin de remplir plus de champs pour le toSend + besoin d'envoyer le message plusieurs fois peut etre
-		// On utilise le ack à 2 pour ces signaux, et on garde le numero e packet du dernier packet envoyé
-		stop = 0;
-		toSendp->ack = 2;
-		toSendp->size = 0;
 
-		// On attend que le proc A ait tout envoyé
-		while (!EndOfProcA) {}
-
-		// Envoi du signal de fin pour le proc B, on attend qu'il nous réponde qu'il a bien compris
-		while (!EndOfCanalB) {
-			if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
-			// fprintf(stderr, "Ack final envoyé\n");
-		}
-		fprintf(stderr, "Ack final recu\n");
-		fprintf(stderr, "## CANAL A : END\n");
 
 
 		pthread_cancel(receive_thread);
 		if(pthread_join(receive_thread,NULL)) bug("pthread join failure: ");
 	}
 	close(s);
+	fprintf(stderr, "## CANAL A : END\n");
 	return 0;
 }
 

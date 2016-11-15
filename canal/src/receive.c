@@ -18,7 +18,6 @@ uint8_t in_window(uint64_t last_number, uint64_t numPacket) {
 }
 
 // ATTENTION: il faut checker si num_packet et dans la window avant !!
-// attention, il faudrait que le premier packet soit le numero 1
 uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab) {
 	// boolean for the zero case
 	static uint8_t zero_received = 0; 
@@ -28,9 +27,9 @@ uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab) {
 		zero_received = 1;
 		return 0;
 	} else if (Tab[numPacket%WINDOW_SIZE]==numPacket) {
-		// Le paquet a déjà été reçu. On doit pas le délivrer 
+		// Le paquet a déjà été reçu. On ne doit pas le délivrer.
 		return 1; 
-	} else { // sinon, on a jamais recu ce packet et on doit le délivrer 
+	} else { // Sinon, on n'a jamais recu ce packet et on doit le délivrer .
 		Tab[numPacket%WINDOW_SIZE] = numPacket;
 		int i = 0;
 
@@ -42,13 +41,12 @@ uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab) {
 	}
 }
 
+
 uint8_t check_end_of_canalA(Packet p){
-	if (p.ack==0) {
-		return 1;
-	} else if (strlen(p.message) > 0) {
+	if (p.ack==2 && strlen(p.message)==0) {
 		return 1;
 	} else {
-				fprintf(stderr, "### END OF CANAL B \n");
+		fprintf(stderr, "### End Packet received B \n");
 		return 0;
 	}
 }
