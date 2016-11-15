@@ -21,7 +21,9 @@
 
 // Je crois que le mutex est inutile 
 static pthread_mutex_t mutex_iReSend = PTHREAD_MUTEX_INITIALIZER;
-uint8_t EndOfProcA = 0; // Booléen pour savoir si le proc A est fini.
+uint8_t EndOfProcA = 0; 	// Booléen pour savoir si le proc A a fini d'envoyer tous les messages.
+uint8_t EndOfCanalA = 0;	// Booléen pour savoir si le canal A a fini d'envoyer tous les messages.
+uint8_t EndOfCanalB = 0;	// Idem
 
 
 void bug(char *s)
@@ -45,6 +47,9 @@ void* receive_ack(void* arg){
 #ifdef DEBUG
 		//fprintf(stderr, "ack n° %llu recu\n", p.numPacket);
 #endif
+		// Si on recoit un ack à 2, le canal B a tout recu
+		if (p.ack==2) EndOfCanalA=1;
+
 		pTable[p.numPacket%WINDOW_SIZE].p.ack = 1;
 		pthread_mutex_lock(&mutex_iReSend); // lock
 		iReSendCpy = *pReSend;
@@ -123,7 +128,7 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Le message reçu : %s\n", p.message);
 #endif
 
-			if (!check_end(p)) break;
+			if (!check_end_of_canalA(p)) break;
 
 			check_in_window = in_window(oldWaitingAck, p.numPacket);
 
@@ -170,6 +175,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, "### END OF CANAL B \n");
 		close(s);
 	}
+
+
+
+
 	// Si c'est un client : il sera du coté de A
 	else if(!strcmp(argv[1],"1")){
 #ifdef DEBUG
@@ -325,13 +334,22 @@ int main(int argc, char **argv)
 		}
 
 		// On envoit le signal de fin, peut etre besoin de remplir plus de champs pour le toSend + besoin d'envoyer le message plusieurs fois peut etre
+		// On utilise le ack à 2 pour ces signaux, et on garde le numero e packet du dernier packet envoyé
 		stop = 0;
-		toSendp->ack = 1;
+		toSendp->ack = 2;
 		toSendp->size = 0;
-		if (EndOfProcA) {
+
+		// On attend que le proc A ait tout envoyé
+		while (!EndOfProcA) {}
+
+		// Envoi du signal de fin pour le proc B, on attend qu'il nous réponde qu'il a bien compris
+		while (!EndOfCanalB) {
 			if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
-			fprintf(stderr, "Ack final envoyé\n");
+			// fprintf(stderr, "Ack final envoyé\n");
 		}
+		fprintf(stderr, "Ack final recu\n");
+		fprintf(stderr, "## CANAL A : END\n");
+
 
 		pthread_cancel(receive_thread);
 		if(pthread_join(receive_thread,NULL)) bug("pthread join failure: ");

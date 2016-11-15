@@ -22,7 +22,7 @@ typedef struct timeval Time;
 #define MAX_TOSEND_BUFFER 4096
 
 #define DEBUG
-#define PERFORMANCE
+// #define PERFORMANCE
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -36,12 +36,10 @@ int main(int argc, char **argv)
 	// Tube de communication entre les 2 processus
 	// Il faut deux tube pour communiquer dans les 2 sens
 	int tube_AtoCanal[2];
-	int tube_CanaltoA[2];
 	puts("Création d'un tube\n");
 	/* pipe 1*/
 	if (pipe(tube_AtoCanal) != 0) bug("Erreur dans pipe 1 \n");
-	/* pipe 2*/
-	if (pipe(tube_CanaltoA) != 0) bug("Erreur dans pipe 2 \n");
+
 
 	canal_pid = fork();    
 	if (canal_pid == -1) bug("Erreur dans fork \n");
@@ -53,12 +51,10 @@ int main(int argc, char **argv)
 
 		// on ferme les 3 pipes inutile
 		close(tube_AtoCanal[1]);
-		close(tube_CanaltoA[0]);
-		close(tube_CanaltoA[1]);
+
 #ifdef DEBUG
 		fprintf(stderr, "### lancer de canal\n");
 		fprintf(stderr, "Fermeture de l'entrée du tube A to Canal dans le proc fils (pid = %d)\n", getpid());
-		fprintf(stderr, "Fermeture de la sortie du tube Canal to A dans le proc fils (pid = %d)\n", getpid());
 #endif
 		// liste qui servira au execvp
 		char* arg_list[] = {"./myCanal", "1", NULL};
@@ -82,8 +78,7 @@ int main(int argc, char **argv)
 		
 		// Fermeture des fd inutile
 		close(tube_AtoCanal[0]);
-		close(tube_CanaltoA[1]);
-		close(tube_CanaltoA[0]);
+
 #ifdef DEBUG
 		fprintf(stderr, "### Proc A: pid= %d\n", getpid());
 #endif
@@ -137,6 +132,7 @@ int main(int argc, char **argv)
 #endif
 
 		wait(NULL);
+		fprintf(stderr, "## PROC A : END\n");
 	}
 	return 0;
 }

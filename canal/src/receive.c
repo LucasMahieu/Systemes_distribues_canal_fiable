@@ -42,7 +42,7 @@ uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab) {
 	}
 }
 
-uint8_t check_end(Packet p){
+uint8_t check_end_of_canalA(Packet p){
 	if (p.ack==0) {
 		return 1;
 	} else if (strlen(p.message) > 0) {
