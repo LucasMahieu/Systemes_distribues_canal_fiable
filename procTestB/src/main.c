@@ -17,7 +17,7 @@
 
 #define MAX_RECEIVED_BUFFER 4096
 
-//#define DEBUG
+#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -29,12 +29,9 @@ int main(int argc, char **argv)
 	pid_t canal_pid;
 	// Tube de communication entre les 2 processus
 	// Il faut deux tube pour communiquer dans les 2 sens
-	int tube_BtoCanal[2];
 	int tube_CanaltoB[2];
 	puts("Création d'un tube\n");
 	/* pipe 1*/
-	if (pipe(tube_BtoCanal) != 0) bug("Erreur dans pipe 1 \n");
-	/* pipe 2*/
 	if (pipe(tube_CanaltoB) != 0) bug("Erreur dans pipe 2 \n");
 
 	canal_pid = fork();    
@@ -47,8 +44,6 @@ int main(int argc, char **argv)
 
 		// On ferme les 3 fd dont on a pas besoin
 		close(tube_CanaltoB[0]);
-		close(tube_BtoCanal[1]);
-		close(tube_BtoCanal[0]);
 		
 		// liste qui servira au execvp
 		char* arg_list[] = {"./myCanal", "0", NULL};
@@ -65,8 +60,7 @@ int main(int argc, char **argv)
 
 		// Ferme les pipe inutiles
 		close(tube_CanaltoB[1]);
-		close(tube_BtoCanal[0]);
-		close(tube_BtoCanal[1]);
+
 #ifdef DEBUG
 		fprintf(stderr,"### PROC B: pid: %d)\n\n", getpid());
 #endif
@@ -76,7 +70,6 @@ int main(int argc, char **argv)
 			// le canal va faire un déliver et on recoie les données avec read
 			read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
 #ifdef DEBUG
-			fprintf(stderr, "#### B à reçu : %s",receiveBuffer);
 			fflush(stderr);
 #endif
 			fwrite(receiveBuffer,sizeof(*receiveBuffer),strlen(receiveBuffer), fOUT);
@@ -84,7 +77,9 @@ int main(int argc, char **argv)
 			memset(receiveBuffer,'\0', MAX_RECEIVED_BUFFER);
 			
 		}
+
 		fclose(fOUT);
+		fprintf(stderr, "## PROC B : END\n");
 		wait(NULL);
 	}
 	return 0;
