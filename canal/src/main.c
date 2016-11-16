@@ -13,7 +13,8 @@
 #include "receive_ack.h"
 #include "window.h"
 #define DEBUG
-
+#define TEST
+int test=0;
 // Je crois que le mutex est inutile 
 static pthread_mutex_t mutex_iReSend = PTHREAD_MUTEX_INITIALIZER;
 
@@ -232,6 +233,12 @@ int main(int argc, char **argv)
 						//stop=1;
 						continue;
 					}
+
+					bug("### Canal A\n");
+					fprintf(stderr, "-----------------------------------------------------------------------------\n");
+					fprintf(stderr,"Cana A a reçu : %s ", message);
+					fprintf(stderr, "-----------------------------------------------------------------------------\n");
+					fflush(stderr);
 					// Filling the packet with some information and the data
 					p.size = strlen(message);
 					p.ack = 0;
@@ -250,6 +257,8 @@ int main(int argc, char **argv)
 
 				}
 			}
+
+
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
 			// On test si le plus vieux des msg non ack a dépassé son timeout
 			if( iReSendCpy != iMemorize
@@ -260,8 +269,20 @@ int main(int argc, char **argv)
 
 				// On prend le packet à envoyer
 				toSendp = &(windowTable[iReSendCpy%WINDOW_SIZE].p);
+
 				// On maj l'heure pour connaitre le nouveau timeout
 				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE]), &currentTime); 
+
+
+#ifdef TEST
+			if (toSendp->numPacket%11==0 && ((test%10)==9)) {
+				memset(toSendp->message,'\0', MAX_BUFLEN);
+				test +=1;
+				continue;
+			}
+			// fprintf(stderr, "Ca marche ou pas ????????????????? %"PRIu64"\n", p.numPacket);
+#endif
+	
 
 				// RE send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
@@ -277,8 +298,21 @@ int main(int argc, char **argv)
 				// On maj le timeout du packet à envoyé dans le cas ou l'on 
 				// doit le re-envoyer plus tard
 				update_timeout(&(windowTable[iSend%WINDOW_SIZE]), &currentTime); 
-
 				iSend++;
+
+
+#ifdef TEST
+			if ((toSendp->numPacket%11)==10 && !((test%11)==10)) {
+				memset(toSendp->message,'\0', MAX_BUFLEN);
+				test +=1;
+				continue;
+			}
+			// fprintf(stderr, "Ca marche ou pas ????????????????? %"PRIu64"\n", p.numPacket);
+#endif
+
+
+
+
 				//send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG

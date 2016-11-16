@@ -82,6 +82,9 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 		fprintf(stderr, "### Proc A: pid= %d\n", getpid());
 #endif
+		
+		// compteur pour remplacer le sleep
+		int cpt = 0;
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
 		sleep(1);
 		while(!stop){
@@ -103,7 +106,8 @@ int main(int argc, char **argv)
 			memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
 			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
 			// on pause quelques sec
-			//sleep(rand()%2);
+			for(cpt=0; cpt<1000000; cpt++){}
+			cpt=0;	
 		}
 		fclose(fIN);
 		fclose(fOUT);
