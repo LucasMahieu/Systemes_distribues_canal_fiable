@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 				if (update_Tab(&oldWaitingAck, p.numPacket, Tab)==0) { 	
 					
 					// Fonction DELIVER a B
-					fprintf(stdout, p.message);
+					fprintf(stdout, "%s", p.message);
 					fflush(stdout);
 
 #ifdef DEBUG
