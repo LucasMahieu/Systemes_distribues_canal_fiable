@@ -108,6 +108,7 @@ int main(int argc, char **argv)
 #endif
 			// fonction que doit appeler A pour envoyer des données à B par le canal
 			fwrite(toSendBuffer, sizeof(char), strlen(toSendBuffer), fOUT);
+			//send(toSendBuffer, fOUT);
 
 			memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
 
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
 			// on pause quelques sec
 			//sleep(rand()%2);
 		}
-		kill(canal_pid, SIGTERM); // On fait un envoi de signal pour signifier au fils que c'est fini.
+		//kill(canal_pid, SIGTERM); // On fait un envoi de signal pour signifier au fils que c'est fini.
 		fclose(fIN);
 		fclose(fOUT);
 		close(tube_AtoCanal[1]);

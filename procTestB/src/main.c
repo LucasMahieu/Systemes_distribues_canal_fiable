@@ -79,8 +79,8 @@ int main(int argc, char **argv)
 		}
 
 		fclose(fOUT);
-		wait(NULL);
 		fprintf(stderr, "## PROC B : END\n");
+		wait(NULL);
 	}
 	return 0;
 }

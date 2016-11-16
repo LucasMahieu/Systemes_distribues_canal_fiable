@@ -21,9 +21,8 @@
 
 // Je crois que le mutex est inutile 
 static pthread_mutex_t mutex_iReSend = PTHREAD_MUTEX_INITIALIZER;
-uint8_t EndOfProcA = 0; 	// Booléen pour savoir si le proc A a fini d'envoyer tous les messages.
+//uint8_t EndOfProcA = 0; 	// Booléen pour savoir si le proc A a fini d'envoyer tous les messages.
 uint8_t EndOfCanalA = 0;	// Booléen pour savoir si le canal A a fini d'envoyer tous les messages.
-uint8_t EndOfCanalB = 0;	// Idem
 uint8_t BAckedAll = 0;
 
 void bug(char *s)
@@ -70,11 +69,11 @@ void* receive_ack(void* arg){
 }
 
 // handler pour le signal envoyé par le proc A
-void handlerEndprocA(int numSig){
-	if (numSig==SIGTERM) {
-		EndOfProcA=1;
-	}
-}
+//void handlerEndprocA(int numSig){
+//	if (numSig==SIGTERM) {
+//		EndOfProcA=1;
+//	}
+//}
 
 
 
@@ -112,6 +111,8 @@ int main(int argc, char **argv)
 
 		// Init the Tab to store messages before delivering them
 		uint64_t Tab[WINDOW_SIZE];	// init tab 
+		// Important pour que le update sache que le packer zero n'est pas deja recu
+		Tab[0]=1;
 		uint8_t check_in_window ;
 		uint64_t last_packet_num = 0; // indice du dernier packet à recevoir
 		Packet p;
@@ -131,31 +132,26 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Le message reçu : %s\n", p.message);
 #endif
 
-			if (!check_end_of_canalA(p)) {
-				// On renvoit le même packet pour acquiescer.
-				if (sendto(s, &p, sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
-				EndOfCanalB = 1;
-				last_packet_num = p.numPacket;
-			}
 			// Si on sait quel est le dernier numéro de packet et qu'on a tout reçu, alors on peut quitter
-			if (EndOfCanalB) {
-				if ((oldWaitingAck+1)==last_packet_num){
-					if (Tab[last_packet_num]==1){
+			if (check_end_of_canalA(p)) {
+				last_packet_num = p.numPacket;
+				if ((oldWaitingAck)==last_packet_num){
+					// On renvoit le même packet pour acquiescer.
+					if (sendto(s, &p, sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 					break;
-					}
 				}
 			}
 
-			check_in_window = in_window(oldWaitingAck, p.numPacket);
+			check_in_window = in_window(oldWaitingAck, p.numPacket, p.ack);
 
 			// number of the packet is in the right window
 			if (check_in_window==1) { 
 				// if the packet has not been received yet, deliver it to B
 				// + update the Tab and the oldWaitingAck value
-				if (update_Tab(&oldWaitingAck, p.numPacket, Tab)==0) { 	
+				if (update_Tab(&oldWaitingAck, p.numPacket, Tab)==0) {
 					
 					// Fonction DELIVER a B
-					fprintf(stdout, p.message);
+					fprintf(stdout, "%s", p.message);
 					fflush(stdout);
 
 #ifdef DEBUG
@@ -194,7 +190,6 @@ int main(int argc, char **argv)
 
 
 
-
 	// Si c'est un client : il sera du coté de A
 	else if(!strcmp(argv[1],"1")){
 #ifdef DEBUG
@@ -202,11 +197,11 @@ int main(int argc, char **argv)
 #endif
 
 		// Traitant du signal de fin de lecture de fichier
-		struct sigaction signalAction;
-		memset((char*) &signalAction, 0, sizeof(struct sigaction));
-		signalAction.sa_handler = handlerEndprocA;
-		signalAction.sa_flags = 0;
-		if (!sigaction(SIGTERM, &signalAction, NULL)) bug("Definition traitant signal");
+		//struct sigaction signalAction;
+		//memset((char*) &signalAction, 0, sizeof(struct sigaction));
+		//signalAction.sa_handler = handlerEndprocA;
+		//signalAction.sa_flags = 0;
+		//if (!sigaction(SIGTERM, &signalAction, NULL)) bug("Definition traitant signal");
 
 
 
@@ -278,7 +273,7 @@ int main(int argc, char **argv)
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) bug("## CANAL A: Erreur fgets\n");
 						// fprintf(stderr, "Plus de message reçu venant du proc A\n");
-						// bug("Canal A : EOF Received\n");
+						bug("Canal A : EOF Received\n");
 
 						// On envoit le signal de fin, peut etre besoin de remplir plus de champs pour le toSend + besoin d'envoyer le message plusieurs fois peut etre
 						// On utilise le ack à 2 pour ces signaux, et on garde le numero e packet du dernier packet envoyé
@@ -290,7 +285,7 @@ int main(int argc, char **argv)
 						// Pour finir le canal A, il faut que : il n'y ait plus de message à attraper,
 						// 										Proc A ait envoyé un signal de fin
 						//										Canal B ait reçu tous les messages
-						if (EndOfProcA && BAckedAll) {
+						if (BAckedAll) {
 							fprintf(stderr, "EndOfProcA et BAckedAll -> fin de canal A\n");
 							stop=1;
 						}
@@ -310,17 +305,16 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 					//printf("Message reçu de A: '%s'\n", p.message);
 #endif
-				}else{
-
 				}
 			}
+			gettimeofday(&currentTime,NULL);
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
 			// On test si le plus vieux des msg non ack a dépassé son timeout
 			if( iReSendCpy != iMemorize
-				&&
-				windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec 
-				&& 
-				windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec <= currentTime.tv_usec){
+					&&
+					windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec <= currentTime.tv_sec 
+					&& 
+					windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec <= currentTime.tv_usec){
 
 				// On prend le packet à envoyer
 				toSendp = &(windowTable[iReSendCpy%WINDOW_SIZE].p);
@@ -359,15 +353,11 @@ int main(int argc, char **argv)
 			fflush(stdout);
 #endif
 		}
-
-
-
-
 		pthread_cancel(receive_thread);
 		if(pthread_join(receive_thread,NULL)) bug("pthread join failure: ");
 	}
 	close(s);
-	fprintf(stderr, "## CANAL A : END\n");
+	fprintf(stderr, "## CANAL X : END\n");
 	return 0;
 }
 
