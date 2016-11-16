@@ -36,7 +36,7 @@ void* receive_ack(void* arg){
 		if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr *) &(((ArgAck*)(arg))->si_other), &(((ArgAck*)(arg))->slen)) == -1) bug("ack recvfrom()");
 
 #ifdef DEBUG
-		//fprintf(stderr, "ack n° %llu recu\n", p.numPacket);
+		fprintf(stderr, "ack n° %llu recu\n", p.numPacket);
 #endif
 		pTable[p.numPacket%WINDOW_SIZE].p.ack = 1;
 		pthread_mutex_lock(&mutex_iReSend); // lock
