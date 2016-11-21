@@ -14,6 +14,7 @@
 #include "window.h"
 #define DEBUG
 #define TEST
+#define TEST_NO_ACK
 
 int test=0;
 
@@ -92,11 +93,17 @@ int main(int argc, char **argv)
 
 		// Init the Tab to store messages before delivering them
 		uint64_t Tab[WINDOW_SIZE];	// init tab 
+		// Important pour que le update sache que le packer zero n'est pas deja recu
+		Tab[0]=1;
+
 		uint8_t check_in_window ;
 
 		Packet p;
 		uint64_t oldWaitingAck = 0;
 
+#ifdef TEST_NO_ACK
+		uint8_t test_no_ack = 0;
+#endif
 		//keep listening for data
 		while(1)
 		{
@@ -133,13 +140,24 @@ int main(int argc, char **argv)
 				p.ack = 1;
 				p.size = 0;
 
+#ifdef TEST_NO_ACK
 				//now reply the client with the ack
-				if (sendto(s, &p, sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
-#ifdef DEBUG
-				fprintf(stderr, "Message n°%llu ack\n",p.numPacket);
+				if(test_no_ack%3!=0){
 #endif
-			} else if (check_in_window==0) { // packet number too low, need to resend the ack to canalA
-				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t), 0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+					if (sendto(s, &p, sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t), 
+								0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
+#ifdef DEBUG
+					fprintf(stderr, "Message n°%llu ack\n",p.numPacket);
+#endif
+#ifdef TEST_NO_ACK
+				}
+				test_no_ack ++;
+#endif
+
+			} else if (check_in_window==0) { 
+				// packet number too low, need to resend the ack to canalA
+				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t),
+							0, (struct sockaddr*) &si_other, slen) == -1) bug("sendto()");
 #ifdef DEBUG
 				fprintf(stderr, "Message n°%llu RE ack\n",p.numPacket);
 #endif
@@ -208,6 +226,8 @@ int main(int argc, char **argv)
 		p.ack = 0;							// is ack or not
 		p.size=0;
 
+		uint8_t eof_received = 0;
+
 		// Processus A va faire send(m), et gets recoit m
 		while(!stop){
 
@@ -218,20 +238,20 @@ int main(int argc, char **argv)
 
 
 			// Fonction qui test si il y a des choses à lire dans le pipe
-			if(poll(pfd,1,0)<1){
+			if(eof_received!=1 && poll(pfd,1,0)<1){
 #ifdef DEBUG 
-				//bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
+				bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
 #endif
 			}else{
 				// Si il y a assez de place pour le mémoriser 
-				if(iMemorize<iReSendCpy+WINDOW_SIZE){
+				if(eof_received!=1 && iMemorize<iReSendCpy+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) bug("## CANAL A: Erreur fgets\n");
-						//bug("Canal A : EOF Received\n");
+						bug("Canal A : EOF Received\n");
+						eof_received = 1;
 						//stop=1;
-						continue;
+						//continue;
 					}
-
 #ifdef DEBUG
 					//bug("### Canal A\n");
 					//fprintf(stderr, "-----------------------------------------------------------------------------\n");
@@ -253,12 +273,13 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 					//printf("Message reçu de A: '%s'\n", p.message);
 #endif
-				}else{
-
 				}
 			}
+			gettimeofday(&currentTime,NULL);
 
-
+#ifdef DEBUG
+			fprintf(stderr, "window.time = %ld,%d et current.time = %ld,%d \n", windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec, windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec,currentTime.tv_sec, currentTime.tv_usec);
+#endif
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
 			// On test si le plus vieux des msg non ack a dépassé son timeout
 			if( iReSendCpy != iMemorize
@@ -285,12 +306,18 @@ int main(int argc, char **argv)
 
 
 			// RE send the message sur le canal
-			if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
-			fprintf(stderr,"### CANAL A     ##################\n");
-			fprintf(stderr,"L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
-			fprintf(stderr,"Message RE envoyé: %s\n", toSendp->message);
-			fprintf(stderr,"----------------------------------\n");
+				fprintf(stderr,"### CANAL A     ##################\n");
+				fprintf(stderr,"L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
+				fprintf(stderr,"Message RE envoyé: %s\n", toSendp->message);
+				fprintf(stderr,"----------------------------------\n");
+#endif
+#ifdef DEBUG
+			fprintf(stderr,"---------------------");
+			fprintf(stderr,"iReSend = %u",iReSendCpy);
+			fprintf(stderr,"iSend = %u", iSend);
+			fprintf(stderr,"iMemorize = %u",iMemorize);
 #endif
 			}else if(iSend<iMemorize){
 				// Si on a pas de msg qui ont dépassé le timeout, on envoie le plus vieux à envoyer
@@ -317,6 +344,13 @@ int main(int argc, char **argv)
 				printf("L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
 				printf("Message envoyé : %s\n", toSendp->message);
 				fprintf(stderr,"----------------------------------\n\n");
+#endif
+#ifdef DEBUG
+			fprintf(stderr,"---------------------\n");
+			fprintf(stderr,"iReSend = %u\n",iReSendCpy);
+			fprintf(stderr,"iSend = %u\n", iSend);
+			fprintf(stderr,"iMemorize = %u\n",iMemorize);
+			fprintf(stderr,"---------------------\n");
 #endif
 			}
 			//clear the buffer by filling null, it might have previously received data
