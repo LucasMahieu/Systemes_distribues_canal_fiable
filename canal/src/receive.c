@@ -18,7 +18,6 @@ uint8_t in_window(uint64_t last_number, uint64_t numPacket) {
 }
 
 // ATTENTION: il faut checker si num_packet et dans la window avant !!
-// attention, il faudrait que le premier packet soit le numero 1
 uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab) {
 	if (Tab[numPacket%WINDOW_SIZE]==numPacket) {
 		// Le paquet a déjà été reçu. On ne doit pas le délivrer.

@@ -14,8 +14,9 @@
 #include "window.h"
 #define DEBUG
 #define TEST
+
 int test=0;
-// Je crois que le mutex est inutile 
+
 static pthread_mutex_t mutex_iReSend = PTHREAD_MUTEX_INITIALIZER;
 
 void bug(char *s)
@@ -24,6 +25,7 @@ void bug(char *s)
 	fflush(stderr);
 }
 
+// Thread de réception des ack du canal A
 void* receive_ack(void* arg){
 	WaitAckElement* pTable = (WaitAckElement*)(((ArgAck*)(arg))->windowTable);
 	uint32_t* pReSend = (uint32_t*)(((ArgAck*)(arg))->iReSend);
@@ -209,7 +211,7 @@ int main(int argc, char **argv)
 		// Processus A va faire send(m), et gets recoit m
 		while(!stop){
 
-			// MAJ iReSendCpy
+			// cpy iReSend dans iReSendCpy
 			pthread_mutex_lock(&mutex_iReSend); // lock
 			iReSendCpy = iReSend;
 			pthread_mutex_unlock(&mutex_iReSend); // unlock
@@ -221,11 +223,7 @@ int main(int argc, char **argv)
 				//bug("NO DATA TO READ, WAITING FOR DATA IN CANAL A or Resending no ack packet\n");
 #endif
 			}else{
-				pthread_mutex_lock(&mutex_iReSend); // lock
-				iReSendCpy = iReSend;
-				pthread_mutex_unlock(&mutex_iReSend); // unlock
-				
-				// On test si il y a assez de place pour le mémoriser 
+				// Si il y a assez de place pour le mémoriser 
 				if(iMemorize<iReSendCpy+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) bug("## CANAL A: Erreur fgets\n");
@@ -234,11 +232,13 @@ int main(int argc, char **argv)
 						continue;
 					}
 
-					bug("### Canal A\n");
-					fprintf(stderr, "-----------------------------------------------------------------------------\n");
-					fprintf(stderr,"Cana A a reçu : %s ", message);
-					fprintf(stderr, "-----------------------------------------------------------------------------\n");
-					fflush(stderr);
+#ifdef DEBUG
+					//bug("### Canal A\n");
+					//fprintf(stderr, "-----------------------------------------------------------------------------\n");
+					//fprintf(stderr,"Canal A a reçu : %s ", message);
+					//fprintf(stderr, "-----------------------------------------------------------------------------\n");
+					//fflush(stderr);
+#endif
 					// Filling the packet with some information and the data
 					p.size = strlen(message);
 					p.ack = 0;
@@ -274,23 +274,23 @@ int main(int argc, char **argv)
 				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE]), &currentTime); 
 
 
-#ifdef TEST
-			if (toSendp->numPacket%11==0 && ((test%10)==9)) {
-				memset(toSendp->message,'\0', MAX_BUFLEN);
-				test +=1;
-				continue;
-			}
-			// fprintf(stderr, "Ca marche ou pas ????????????????? %"PRIu64"\n", p.numPacket);
-#endif
-	
+//#ifdef TEST
+//			if (toSendp->numPacket%11==0 && ((test%10)==9)) {
+//				memset(toSendp->message,'\0', MAX_BUFLEN);
+//				test +=1;
+//				continue;
+//			}
+//			// fprintf(stderr, "Ca marche ou pas ????????????????? %"PRIu64"\n", p.numPacket);
+//#endif
 
-				// RE send the message sur le canal
-				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
+
+			// RE send the message sur le canal
+			if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
-				fprintf(stderr,"### CANAL A     ##################\n");
-				fprintf(stderr,"L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
-				fprintf(stderr,"Message RE envoyé: %s\n", toSendp->message);
-				fprintf(stderr,"----------------------------------\n");
+			fprintf(stderr,"### CANAL A     ##################\n");
+			fprintf(stderr,"L'en tête est : (%u, %"PRIu64", %u)\n", toSendp->source, toSendp->numPacket, toSendp->ack);
+			fprintf(stderr,"Message RE envoyé: %s\n", toSendp->message);
+			fprintf(stderr,"----------------------------------\n");
 #endif
 			}else if(iSend<iMemorize){
 				// Si on a pas de msg qui ont dépassé le timeout, on envoie le plus vieux à envoyer
@@ -300,20 +300,17 @@ int main(int argc, char **argv)
 				update_timeout(&(windowTable[iSend%WINDOW_SIZE]), &currentTime); 
 				iSend++;
 
+//#ifdef TEST
+//				if ((toSendp->numPacket%11)==10 && !((test%11)==10)) {
+//				if ((toSendp->numPacket%10)==0) {
+//					memset(toSendp->message,'\0', MAX_BUFLEN);
+//					test +=1;
+//					continue;
+//				}
+//				// fprintf(stderr, "Ca marche ou pas ????????????????? %"PRIu64"\n", p.numPacket);
+//#endif
 
-#ifdef TEST
-			if ((toSendp->numPacket%11)==10 && !((test%11)==10)) {
-				memset(toSendp->message,'\0', MAX_BUFLEN);
-				test +=1;
-				continue;
-			}
-			// fprintf(stderr, "Ca marche ou pas ????????????????? %"PRIu64"\n", p.numPacket);
-#endif
-
-
-
-
-				//send the message sur le canal
+//send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 0, (struct sockaddr *) &si_other, slen)==-1) bug("sendto()");
 #ifdef DEBUG
 				fprintf(stderr,"### CANAL A     ##################\n");
@@ -323,9 +320,9 @@ int main(int argc, char **argv)
 #endif
 			}
 			//clear the buffer by filling null, it might have previously received data
-			memset(p.message,'\0', MAX_BUFLEN);
+		memset(p.message,'\0', MAX_BUFLEN);
 #ifdef DEBUG
-			fflush(stdout);
+		fflush(stdout);
 #endif
 		}
 		pthread_cancel(receive_thread);
