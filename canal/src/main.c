@@ -170,8 +170,13 @@ int main(int argc, char **argv)
 				}
 				test_no_ack ++;
 #endif
+			} else if (check_in_window == 0) { 
 
-			} else if (check_in_window==0) { 
+				// Format the packet to fit a ACK
+				p.source = getpid();
+				p.ack = 1;
+				p.size = 0;
+
 				// packet number too low, need to resend the ack to canalA
 				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+
 					sizeof(uint32_t)+sizeof(uint8_t),0, 
