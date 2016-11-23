@@ -59,6 +59,7 @@ void* receive_ack(void* arg){
 		// If the ack received was for the oldest packet, update iReSend 
 		if(p.numPacket == iReSendCpy){
 			while(pTable[iReSendCpy%WINDOW_SIZE].p.ack!=0){
+				pTable[iReSendCpy%WINDOW_SIZE].p.ack = 0;
 				iReSendCpy++;
 			}
 			pthread_mutex_lock(&mutex_iReSend); // lock
@@ -211,7 +212,7 @@ int main(int argc, char **argv)
 			bug("inet_aton() failed\n");
 		
 		// Pour la fiabilisation du canal
-		WaitAckElement windowTable[WINDOW_SIZE]; 
+		WaitAckElement windowTable[WINDOW_SIZE];
 		uint32_t iMemorize=0;
 		uint32_t iSend=0;
 		uint32_t iReSend=0;
