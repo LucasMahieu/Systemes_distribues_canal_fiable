@@ -1,10 +1,10 @@
 0000000000 INIT
 0000000001 JE SUIS TON PERE, EST CE QUE TU ME RECOIS.
-0000000002 Harry Potter : Le seul film où l'on verra des mecs se servir d'un balai.
-0000000003 Si une fille dit que tu es moche c'est qu'elle est jalouse.
-0000000004 Si un mec dit que t'es moche c'est qu'il est méchant.
-0000000005 Si un enfant dit que tu es moche, t'es moche!
-0000000006 Un boomerang c'est comme un frisbee mais pour ceux qui n'ont pas d'amis.
-0000000007 Alors t'en est où dans tes relations amoureuses?
-0000000008 Disons que j'ai autant de chance que l'écureuil dans l'Age de glace.
-0000000009 Les murs ont des oreilles, j'ferais en sorte qu'ils n'aient pas de bouche.
+0000000002 Si une fille dit que tu es moche c'est qu'elle est jalouse.
+0000000003 Si un mec dit que t'es moche c'est qu'il est méchant.
+0000000004 Si un enfant dit que tu es moche, t'es moche!
+0000000005 Un boomerang c'est comme un frisbee mais pour ceux qui n'ont pas d'amis.
+0000000006 Alors t'en est où dans tes relations amoureuses?
+0000000007 Disons que j'ai autant de chance que l'écureuil dans l'Age de glace.
+0000000008 Les murs ont des oreilles, j'ferais en sorte qu'ils n'aient pas de bouche.
+0000000009 END 
