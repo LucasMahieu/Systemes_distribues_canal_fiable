@@ -290,20 +290,22 @@ int main(int argc, char **argv)
 					//fprintf(stderr, "-----------------------------------\n");
 					//fflush(stderr);
 #endif
-					// Filling the packet with some information and the data
-					p.size = strlen(message);
-					p.ack = 0;
-					memcpy(p.message, message, (p.size)*sizeof(char));
-					p.numPacket = currentIDPacket;
-					currentIDPacket++;
-					// On mémorise le packet reçu pour l'envoyer plus tard
-					windowTable[iMemorize%WINDOW_SIZE].p = p;
-					// Mise à jour du temps
-					update_timeout(&(windowTable[iMemorize%WINDOW_SIZE]), &currentTime); 
-					iMemorize++;
+					if(!eof_received){
+						// Filling the packet with some information and the data
+						p.size = strlen(message);
+						p.ack = 0;
+						memcpy(p.message, message, (p.size)*sizeof(char));
+						p.numPacket = currentIDPacket;
+						currentIDPacket++;
+						// On mémorise le packet reçu pour l'envoyer plus tard
+						windowTable[iMemorize%WINDOW_SIZE].p = p;
+						// Mise à jour du temps
+						update_timeout(&(windowTable[iMemorize%WINDOW_SIZE]), &currentTime); 
+						iMemorize++;
 #ifdef DEBUG
 						//printf("Message reçu de A: '%s'\n", p.message);
 #endif
+					}
 				}
 			}
 			gettimeofday(&currentTime,NULL);
