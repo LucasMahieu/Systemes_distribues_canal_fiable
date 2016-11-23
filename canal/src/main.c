@@ -274,9 +274,12 @@ int main(int argc, char **argv)
 				// Si il y a assez de place pour le mémoriser 
 				if(eof_received == 0 && iMemorize < iReSendCpy+WINDOW_SIZE){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
-						if(ferror(stdin)) bug("## CANAL A: Erreur fgets\n");
-						bug("Canal A : EOF Received\n");
-						eof_received = 1;
+						if(ferror(stdin)) 
+							bug("## CANAL A: Erreur fgets\n");
+						if(feof(stdin)){ 
+							bug("Canal A : EOF Received\n");
+							eof_received = 1;
+						}
 						//stop=1;
 						//continue;
 					}
