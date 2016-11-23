@@ -4,7 +4,10 @@ myProcTest
 myProcTestA
 myProcTestB
 .DS_Store
-doc/*
 *.txt
 *.swp
 procTestB/data/receive.txt
+*.log
+*.aux
+*.synctex.gz
+rapport.pdf

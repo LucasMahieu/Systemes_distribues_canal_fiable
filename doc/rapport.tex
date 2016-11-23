@@ -1,0 +1,70 @@
+\documentclass{report}
+\usepackage{graphicx}
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+
+\begin{document}
+
+
+\chapter{Introduction}
+Ce compte-rendu décrit le canal fiable et le détecteur de fautes du "TP Systèmes distribués". Pour ces deux points, nous présenterons dans un premier temps la spécification, les hypothèses posées, l'implémentation, puis l'évaluation du bon fonctionnement du produit.
+
+\section{Canal fiable}
+
+\subsection{Spécifications}
+Le premier objectif du TP est d'implémenter un canal point-à-point dit "fiable" entre deux processus. L'interface processus / canal est composée de deux méthodes :
+\begin{itemize}
+%actuellement ce n'est pas le cas
+\item send(m, p) : méthode permettant de charger au canal de livrer le message m au processus ayant le PID p. Cette méthode est accessible par les processus.
+\item deliver(m, p) : méthode permettant au canal de livrer le message m au processus p. Cette méthode est accessible par le canal.\newline
+\end{itemize}
+Les garanties à remplir par un canal "fiable" sont :
+\begin{itemize}
+\item validité : si on processus correcte émet un message à destination d'un processus correcte, alors ce dernier le délivrera.
+\item intégrité : un processus ne peut délivrer un message qu'au plus une fois et seulement ce message a été émis par un processus.
+%question -> seulement ce message a été émis par un processus ??????  comprends pas 
+\end{itemize}
+
+
+\subsection{Hypothèses}
+Les hypothèses qui ont été faites sur notre système sont ; 
+\begin{itemize}
+\item Possibilité de panne franche de la part d'un ou des deux processus.
+\item Existence et utilisation d'un canal non fiable (UDP).
+\item Messages de longueur finie (longueur maximale de  (TBD ))
+\item Mémoire limitée. Les processus ne ont accès à un espace mémoire fini.
+\item Ordre non garanti. L'ordre d'envoi des messages est différent de l'ordre de réception.
+\end{itemize}
+
+
+\subsection{Algorithme}
+Nous allons décrire l'algorithme utilisé pour l'implémentation du canal fiable. Cette description se fera sous la forme de pseudo code. Les acteurs présents sont :
+\begin{itemize}
+\item Le processus émetteur, maintenant appelé "processus A".
+\item L'extémité du canal à qui le processus A a confié un message, maintenant appelé "canal A".
+\item L'extémité du canal à qui le canal A a transmis un message, maintenant appelé "canal B".
+\item Le processus récepteur, maintenant appelé "processus B". \newline
+\end{itemize}
+
+
+\begin{figure}[!h]
+\begin{center}
+   \includegraphics[scale=0.4]{exchange_stack.png}
+\caption{Schéma de fonctionnement du canal}
+\label{fig:canal}
+\end{center}
+\end{figure}
+
+
+Fonctionnement du canal A :
+Le canal A est composé de deux threads. Le premier est chargé d'envoyer les messages reçus de la part du processus A. Le deuxième réceptionne les messages d'acquittement de la part du canal B. En effet, lorsque le canal B reçoit un message de la part du canal A, il doit acquitter la réception du message auprès du canal A.
+
+Processus de réception des messages : 
+
+
+
+
+
+
+\end{document}
