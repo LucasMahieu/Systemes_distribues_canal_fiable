@@ -20,27 +20,6 @@
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;
 
-// not used --------------------- --------------------- --------------------- --------------------- --------------------- ---------------------
-typedef struct listeChaine {
-	int num;
-	struct listeChaine* next;
-} listeChaine;
-// Structure for the Tab to get informations about the message stored in this element
-typedef struct IDMessage {
-	int numMessage; 	// Number of the message 
-	int maxSequence;	// The message is composed of max messages to assemble
-	listeChaine list; 	// List of already received package numbers
-	char* buffer;		// Where the message is stored
-} IDMessage;
-
-// En tete of a udp package
-typedef struct enTete {
-	int numMessage;		// Number of the message. The first message has a value of 1 for this attribute.
-	int numSequence; 	// number of the package in the message. The minimum value is 1.
-	int maxSequence; 	//	The message is composed of maxSequence messages to assemble. The minimum value is 1.
-} enTete;
-// not used --------------------- --------------------- --------------------- --------------------- --------------------- ---------------------
-
 // General packet
 typedef struct packet {
 	uint32_t source; 			// processus source
@@ -49,7 +28,5 @@ typedef struct packet {
 	uint32_t size;
 	char message[MAX_BUFLEN];				// message (data)
 } Packet;
-
-
 
 #endif

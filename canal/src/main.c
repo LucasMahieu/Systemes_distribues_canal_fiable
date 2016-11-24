@@ -9,7 +9,6 @@
 #include <pthread.h>
 
 #include "structure.h"
-#include "receive.h"
 #include "receive_ack.h"
 #include "window.h"
 #define DEBUG
