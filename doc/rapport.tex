@@ -1,70 +1,84 @@
-\documentclass{report}
-\usepackage{graphicx}
-\usepackage[latin1]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage[francais]{babel}
+\documentclass[a4paper, 10pt, french]{article}
+
+% PrÃ©ambule; packages qui peuvent Ãªtre utiles
+\usepackage[T1]{fontenc}        % Ce package pourrit les pdf...
+\usepackage{babel,indentfirst}  % Pour les cÃ©sures correctes,
+                                       % et pour indenter au dÃ©but de chaque paragraphe
+\usepackage[utf8]{inputenc}   % Pour pouvoir utiliser directement les accents
+                                     % et autres caractÃ¨res franÃ§ais
+\usepackage{lmodern,tgpagella} % Police de caractÃ¨res
+\textwidth 17cm \textheight 25cm \oddsidemargin -0.24cm % DÃ©finition taille de la page
+\evensidemargin -1.24cm \topskip 0cm \headheight -1.5cm % DÃ©finition des marges
+
+\usepackage{latexsym}                  % Symboles
+\usepackage{amsmath}                   % Symboles mathÃ©matiques
+\usepackage{tikz}   % Pour faire des schÃ©mas
+\usepackage{graphicx} % Pour inclure des images
+\usepackage{listings} % pour mettre des listings
+% Fin PrÃ©ambule; package qui peuvent Ãªtre utiles
+
+\title{Rapport de TP 4MMSD : Conception d'un canal fiable Ã  partir de la couche UDP ainsi qu'un dÃ©tecteur de fautes parfaits}
+\author{ MAHIEU LUCAS Ã©tudiant PHELMA SLE 
+\\ GONDOIS Pierre Ã©tudiant PHELMA SLE
+}
 
 \begin{document}
 
+\maketitle
 
-\chapter{Introduction}
-Ce compte-rendu décrit le canal fiable et le détecteur de fautes du "TP Systèmes distribués". Pour ces deux points, nous présenterons dans un premier temps la spécification, les hypothèses posées, l'implémentation, puis l'évaluation du bon fonctionnement du produit.
+\section{Introduction}
+Ce compte-rendu dÃ©crit le canal fiable et le dÃ©tecteur de fautes du "TP SystÃ¨mes distribuÃ©s". Pour ces deux points, nous prÃ©senterons dans un premier temps la spÃ©cification, les hypothÃ¨ses posÃ©es, l'implÃ©mentation, puis l'Ã©valuation du bon fonctionnement du produit.
 
 \section{Canal fiable}
 
-\subsection{Spécifications}
-Le premier objectif du TP est d'implémenter un canal point-à-point dit "fiable" entre deux processus. L'interface processus / canal est composée de deux méthodes :
+\subsection{SpÃ©cifications}
+Le premier objectif du TP est d'implÃ©menter un canal point-Ã -point dit "fiable" entre deux processus. L'interface processus / canal est composÃ©e de deux mÃ©thodes :
+
 \begin{itemize}
-%actuellement ce n'est pas le cas
-\item send(m, p) : méthode permettant de charger au canal de livrer le message m au processus ayant le PID p. Cette méthode est accessible par les processus.
-\item deliver(m, p) : méthode permettant au canal de livrer le message m au processus p. Cette méthode est accessible par le canal.\newline
+	%actuellement ce n'est pas le cas
+	\item send(m, p) : mÃ©thode permettant de charger au canal de livrer le message m au processus ayant le PID p. Cette mÃ©thode est accessible par les processus.
+	\item deliver(m, p) : mÃ©thode permettant au canal de livrer le message m au processus p. Cette mÃ©thode est accessible par le canal.\newline
 \end{itemize}
-Les garanties à remplir par un canal "fiable" sont :
+	
+	Les garanties Ã  remplir par un canal "fiable" sont :
 \begin{itemize}
-\item validité : si on processus correcte émet un message à destination d'un processus correcte, alors ce dernier le délivrera.
-\item intégrité : un processus ne peut délivrer un message qu'au plus une fois et seulement ce message a été émis par un processus.
-%question -> seulement ce message a été émis par un processus ??????  comprends pas 
+	\item validitÃ© : si on processus correcte Ã©met un message Ã  destination d'un processus correcte, alors ce dernier le dÃ©livrera.
+	\item intÃ©gritÃ© : un processus ne peut dÃ©livrer un message qu'au plus une fois et seulement ce message a Ã©tÃ© Ã©mis par un processus.
+%question -> seulement ce message a Ã©tÃ© Ã©mis par un processus ??????  comprends pas 
 \end{itemize}
 
+\subsection{HypothÃ¨ses}
+Les hypothÃ¨ses qui ont Ã©tÃ© faites sur notre systÃ¨me sont ; 
 
-\subsection{Hypothèses}
-Les hypothèses qui ont été faites sur notre système sont ; 
 \begin{itemize}
-\item Possibilité de panne franche de la part d'un ou des deux processus.
-\item Existence et utilisation d'un canal non fiable (UDP).
-\item Messages de longueur finie (longueur maximale de  (TBD ))
-\item Mémoire limitée. Les processus ne ont accès à un espace mémoire fini.
-\item Ordre non garanti. L'ordre d'envoi des messages est différent de l'ordre de réception.
+	\item PossibilitÃ© de panne franche de la part d'un ou des deux processus.
+	\item Existence et utilisation d'un canal non fiable (UDP).
+	\item Messages de longueur finie (longueur maximale de  (TBD ))
+	\item MÃ©moire limitÃ©e. Les processus ne ont accÃ¨s Ã  un espace mÃ©moire fini.
+	\item Ordre non garanti. L'ordre d'envoi des messages est diffÃ©rent de l'ordre de rÃ©ception.
 \end{itemize}
 
 
 \subsection{Algorithme}
-Nous allons décrire l'algorithme utilisé pour l'implémentation du canal fiable. Cette description se fera sous la forme de pseudo code. Les acteurs présents sont :
+Nous allons dÃ©crire l'algorithme utilisÃ© pour l'implÃ©mentation du canal fiable. Cette description se fera sous la forme de pseudo code. Les acteurs prÃ©sents sont :
 \begin{itemize}
-\item Le processus émetteur, maintenant appelé "processus A".
-\item L'extémité du canal à qui le processus A a confié un message, maintenant appelé "canal A".
-\item L'extémité du canal à qui le canal A a transmis un message, maintenant appelé "canal B".
-\item Le processus récepteur, maintenant appelé "processus B". \newline
+	\item Le processus Ã©metteur, maintenant appelÃ© "processus A".
+	\item L'extÃ©mitÃ© du canal Ã  qui le processus A a confiÃ© un message, maintenant appelÃ© "canal A".
+	\item L'extÃ©mitÃ© du canal Ã  qui le canal A a transmis un message, maintenant appelÃ© "canal B".
+	\item Le processus rÃ©cepteur, maintenant appelÃ© "processus B". \newline
 \end{itemize}
-
 
 \begin{figure}[!h]
 \begin{center}
-   \includegraphics[scale=0.4]{exchange_stack.png}
-\caption{Schéma de fonctionnement du canal}
-\label{fig:canal}
+   	\includegraphics[scale=0.4]{exchange_stack.png}
+	\caption{SchÃ©ma de fonctionnement du canal}
+	\label{fig:canal}
 \end{center}
 \end{figure}
 
-
 Fonctionnement du canal A :
-Le canal A est composé de deux threads. Le premier est chargé d'envoyer les messages reçus de la part du processus A. Le deuxième réceptionne les messages d'acquittement de la part du canal B. En effet, lorsque le canal B reçoit un message de la part du canal A, il doit acquitter la réception du message auprès du canal A.
+Le canal A est composÃ© de deux threads. Le premier est chargÃ© d'envoyer les messages reÃ§us de la part du processus A. Le deuxiÃ¨me rÃ©ceptionne les messages d'acquittement de la part du canal B. En effet, lorsque le canal B reÃ§oit un message de la part du canal A, il doit acquitter la rÃ©ception du message auprÃ¨s du canal A.
 
-Processus de réception des messages : 
-
-
-
-
-
+Processus de rÃ©ception des messages : 
 
 \end{document}
