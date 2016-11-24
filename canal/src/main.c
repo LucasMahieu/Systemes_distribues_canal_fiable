@@ -11,9 +11,12 @@
 #include "structure.h"
 #include "receive_ack.h"
 #include "window.h"
-#define DEBUG
-#define TEST
-#define TEST_NO_ACK
+
+//#define DEBUG
+
+//#define TEST_NO_SEND
+//#define TEST_NO_ACK
+#define MODULO_TEST_NO_ACK 2
 
 int test=0;
 
@@ -36,9 +39,6 @@ void* receive_ack(void* arg){
 	bug("### CANAL de A -- Thread de reception des ack\n");
 #endif
 	while(1){
-#ifdef DEBUG
-		fprintf(stderr, ">>>> THREAD DEBUG<<<<\n");
-#endif
 		if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint64_t)+sizeof(uint32_t)+
 			sizeof(uint8_t)+sizeof(uint32_t), 0, 
 			(struct sockaddr *) &(((ArgAck*)(arg))->si_other), 
@@ -58,6 +58,7 @@ void* receive_ack(void* arg){
 		// If the ack received was for the oldest packet, update iReSend 
 		if(p.numPacket == iReSendCpy){
 			while(pTable[iReSendCpy%WINDOW_SIZE].p.ack!=0){
+				// Si cette case était à 1, on la met à zero pour la prochaine fois
 				pTable[iReSendCpy%WINDOW_SIZE].p.ack = 0;
 				iReSendCpy++;
 			}
@@ -157,7 +158,7 @@ int main(int argc, char **argv)
 				p.size = 0;
 #ifdef TEST_NO_ACK
 				//now reply the client with the ack
-				if(test_no_ack%3!=0){
+				if(test_no_ack%MODULO_TEST_NO_ACK!=0){
 #endif
 					if (sendto(s, &p, sizeof(uint64_t)+sizeof(uint32_t)+
 						sizeof(uint32_t)+sizeof(uint8_t), 0, 
@@ -312,9 +313,9 @@ int main(int argc, char **argv)
 
 #ifdef DEBUG
 //			fprintf(stderr, "window.time = %ld,%d et current.time = %ld,%d \n", 
-//					windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec, 
-//					windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec,
-//					currentTime.tv_sec, currentTime.tv_usec);
+//			windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec, 
+//			windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_usec,
+//			currentTime.tv_sec, currentTime.tv_usec);
 #endif
 			// Mtn il faux choisir si on envoie un message ou si on RE envoi un message non ack
 			// On test si le plus vieux des msg non ack a dépassé son timeout
@@ -329,15 +330,8 @@ int main(int argc, char **argv)
 
 				// On maj l'heure pour connaitre le nouveau timeout
 				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE]), &currentTime); 
-//#ifdef TEST
-//			if (toSendp->numPacket%11==0 && ((test%10)==9)) {
-//				memset(toSendp->message,'\0', MAX_BUFLEN);
-//				test +=1;
-//				continue;
-//			}
-//			// fprintf(stderr, "Ca marche ou pas ????????????????? %"PRIu64"\n", p.numPacket);
-//#endif
-			// RE send the message sur le canal
+
+				// RE send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+
 					sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 
 					0, (struct sockaddr *) &si_other, slen)==-1) 
@@ -363,16 +357,6 @@ int main(int argc, char **argv)
 				// doit le re-envoyer plus tard
 				update_timeout(&(windowTable[iSend%WINDOW_SIZE]), &currentTime); 
 				iSend++;
-
-//#ifdef TEST
-//				if ((toSendp->numPacket%11)==10 && !((test%11)==10)) {
-//				if ((toSendp->numPacket%10)==0) {
-//					memset(toSendp->message,'\0', MAX_BUFLEN);
-//					test +=1;
-//					continue;
-//				}
-//				// fprintf(stderr, "Ca marche ou pas ????????????????? %"PRIu64"\n", p.numPacket);
-//#endif
 
 //send the message on the canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+
@@ -400,6 +384,7 @@ int main(int argc, char **argv)
 		fflush(stdout);
 #endif
 		}
+		fprintf(stderr,"### CANAL A: TEST FINISHED");
 		pthread_cancel(receive_thread);
 		if(pthread_join(receive_thread,NULL)) bug("pthread join failure: ");
 	}

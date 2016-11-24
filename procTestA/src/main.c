@@ -16,6 +16,7 @@
 #include	<time.h>
 
 #define MAX_TOSEND_BUFFER 4096
+#define INPUT_FILE "procTestA/data/toSend_2.txt"
 
 //#define DEBUG
 
@@ -68,7 +69,7 @@ int main(int argc, char **argv)
 
 		char toSendBuffer[MAX_TOSEND_BUFFER];
 		FILE* fIN;
-		if((fIN = fopen("procTestA/data/toSend.txt","r"))==NULL) bug("Erreur dans fopen fIN\n");
+		if((fIN = fopen(INPUT_FILE,"r"))==NULL) bug("Erreur dans fopen fIN\n");
 
 		FILE* fOUT;
 		if((fOUT=fdopen(tube_AtoCanal[1],"w"))==NULL) bug("Erreur fOUT prog A");
@@ -83,8 +84,6 @@ int main(int argc, char **argv)
 		fprintf(stderr, "### Proc A: pid= %d\n", getpid());
 #endif
 		
-		// compteur pour remplacer le sleep
-		int cpt = 0;
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
 		sleep(1);
 		while(!stop){
@@ -102,13 +101,9 @@ int main(int argc, char **argv)
 #endif
 			// fonction que doit appeler A pour envoyer des données à B par le canal
 			fwrite(toSendBuffer, sizeof(char), strlen(toSendBuffer), fOUT);
-
 			memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
-			// Pour pas que le test se finisse trop vite, que ca soit plus réaliste
-			// on pause quelques sec
-			for(cpt=0; cpt<1000000; cpt++){}
-			cpt=0;	
 		}
+		fprintf(stderr, "### PROC A : TEST FINISHED\n");
 		fclose(fIN);
 		fclose(fOUT);
 		close(tube_AtoCanal[1]);
