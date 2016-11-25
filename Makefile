@@ -7,7 +7,6 @@ H_DIR = headers/
 CFLAGS = -O0 -Wall -g -I$(H_DIR)
 LDFLAGS = 
 
-
 PROG0_DIR = procTestA/
 PROG1_DIR = procTestB/
 PROG2_DIR = canal/
@@ -47,5 +46,7 @@ clean:
 	@rm myProcTestB
 	@(cd $(PROG2_DIR) && $(MAKE) $@)
 	@rm myCanal
+	@rm $(PROG1_DIR)data/receive.txt
+	@touch $(PROG1_DIR)data/receive.txt
 
 
