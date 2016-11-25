@@ -6,6 +6,9 @@
 #include "receive_ack.h"
 #include "structure.h"
 
+#define DEBUG
+#define DETECTOR
+
 // Thread de réception des ack du canal A
 void* receive_ack(void* arg){
 	WaitAckElement* pTable = (WaitAckElement*)(((ArgAck*)(arg))->windowTable);
@@ -25,6 +28,11 @@ void* receive_ack(void* arg){
 
 #ifdef DEBUG
 		fprintf(stderr, ">>>> ack n° %llu recu <<<<\n", p.numPacket);
+#endif
+
+#ifdef DETECTOR
+		fprintf(stderr, "DETECTOR ACTIVATED \n");
+		fprintf(stdout, ">>>> ack n° %llu recu <<<<\n", p.numPacket);
 #endif
 		// Enable the ack flag for the packet received
 		pTable[p.numPacket%WINDOW_SIZE].p.ack = 1;

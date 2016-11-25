@@ -12,7 +12,7 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
-//#define DEBUG
+#define DEBUG
 
 // Uncomment to enable the simulation of message lost
 //#define TEST_NO_SEND
