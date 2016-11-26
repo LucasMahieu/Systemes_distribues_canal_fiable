@@ -15,8 +15,6 @@
 
 #define MAX_BUFLEN 4096		//Max length of buffer (for messages)
 
-#define MAXMESSAGE 64		//Maximum messages that we can receive simultaneously
-
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;
 

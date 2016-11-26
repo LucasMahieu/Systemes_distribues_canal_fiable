@@ -13,7 +13,7 @@
 // time to wait before to resend the packet in us
 #define TIMEOUT_WAIT_ACK 10000
 #define MAX_TV_USEC 999999
-#define WINDOW_SIZE 5
+#define WINDOW_SIZE 50
 
 typedef struct timeval Time;
 typedef struct {

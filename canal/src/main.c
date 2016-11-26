@@ -12,7 +12,7 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
-#define DEBUG
+//#define DEBUG
 
 //#define DETECTOR
 
@@ -108,10 +108,14 @@ int main(int argc, char **argv)
 					// Fonction DELIVER a B
 					deliver(p.message);
 #ifdef DETECTOR
+#ifdef DEBUG
 					fprintf(stderr, "avant lecture dans proc\n");
+#endif				
 					if(fgets(messageFromD, 256, stdin) == NULL) bug("Erreur de communication avec D");
+#ifdef DEBUG
 					fprintf(stderr, "%s\n", messageFromD);
 					fprintf(stderr, "apres lecture dans proc\n");
+#endif				
 #endif				
 #ifdef DEBUG
 					fprintf(stderr, "Message délivré\n");

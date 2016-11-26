@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 			if (perf_debit == 1) {
 				if (cpt_msg < NB_MSG_1KB) {
 					// le canal va faire un déliver et on recoie les données avec read
-					read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
+					read(tube_CanaltoB[0], receiveBuffer, LINE_SIZE);
 					if (cpt_msg == 0) {
 						gettimeofday(&perf_start_time, NULL);
 					} 
@@ -129,24 +129,26 @@ int main(int argc, char **argv)
 					fprintf(stderr, "---- Débit mesuré     = %.3f MB/s       ----\n",250.0/perf_duration);
 					fprintf(stderr, "---- Ratio            = %.3f %%         ----\n",(250.0*100.0)/(perf_duration*125.0));
 					fprintf(stderr, "---------------------------------------------\n");
+					fflush(stderr);
 					break;
 				}
 				cpt_msg ++;
-				fprintf(stderr, "%d message délivré\n", cpt_msg);
+				//fprintf(stderr, "%d message délivré\n", cpt_msg);
 			} else { 
 				// le canal va faire un déliver et on recoie les données avec read
 				read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
 			}
 #ifdef DEBUG
 			fprintf(stderr, "#### B à reçu : %s",receiveBuffer);
+			fprintf(stderr, "-------------------------------------------\n");
 			fflush(stderr);
 #endif
-			if (perf_debit == 0) {
+			//if (perf_debit == 0) {
 				fwrite(receiveBuffer, sizeof(*receiveBuffer), 
 						strlen(receiveBuffer), fOUT);
 				fflush(fOUT);
 				memset(receiveBuffer, '\0', MAX_RECEIVED_BUFFER);
-			}
+			//}
 			
 		}
 		fclose(fOUT);
