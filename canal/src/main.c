@@ -12,7 +12,7 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
-#define DEBUG
+// #define DEBUG
 
 // #define DETECTOR
 
@@ -30,6 +30,12 @@
 
 int main(int argc, char **argv)
 {
+	while(1) {
+		sleep(1);
+		fprintf(stderr, "salut error\n");
+		printf("azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azert");
+		fsync(fileno(stdout));
+	}
 	Sockaddr_in si_other;
 	Socket s;
 	//slen to store the length of the address when we receive a packet,
@@ -51,7 +57,7 @@ int main(int argc, char **argv)
 #ifdef DETECTOR
 		char messageFromD[256];
 #endif
-		
+
 		// Sockaddr to receive data
 		Sockaddr_in si_me;
 		memset((char *) &si_me, 0, sizeof(si_me));

@@ -18,7 +18,7 @@
 
 
 // Pour le seed de random
-#include	<time.h>
+#include <time.h>
 
 #define BUFFER_SIZE 256
 #define INPUT_FILE "procTestA/data/toSend_2.txt"
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 		close(tube_CanaltoC[0]);
 
 
-		// sleep(3);
+		sleep(3);
 		// fprintf(stdout, "salut\n");
 		// sleep(2);
 		// fprintf(stdout, "toi \n");
@@ -127,8 +127,9 @@ int main(int argc, char **argv)
 			fprintf(stdout, "%s\n", sendBuffer);
 
 
-			// if(fgets(sendBuffer, 256, stdin) == NULL) bug("Erreur de communication avec D");
-			read(tube_CanaltoC[0], sendBuffer, BUFFER_SIZE);
+			fprintf(stderr, "Ca va lire\n");
+			if(fgets(sendBuffer, 2, stdin) == NULL) bug("Erreur de communication avec D");
+			// read(tube_CanaltoC[0], sendBuffer, 1);
 			fprintf(stderr, "lol %s\n", sendBuffer);
 			// réception de signe de vie de D
 			// messageToRead = poll(pfd,1,TIME_TO_WAIT*1000);
