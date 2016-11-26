@@ -28,10 +28,10 @@ all: $(PROG0) $(PROG1) $(PROG2) $(PROG3) $(PROG4)
 	@(cp $(PROG4) ./)
 
 exeA: $(PROG0)
-	./myProcTestA
+	nice -n 200 ./myProcTestA -d
 	
 exeB: $(PROG1)
-	./myProcTestB
+	nice -n 200 ./myProcTestB -d
 
 exeMyCanal: $(PROG2)
 	./myCanal

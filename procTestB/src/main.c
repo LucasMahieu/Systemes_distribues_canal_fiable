@@ -1,5 +1,7 @@
-/*
- * Simple udp server
+/**
+ * Processus de test qui créer une instance de canal
+ * et écoute sur le canal
+ * Il ira écrire tout se qu'il a lu dans une fichier 
  */
 #include <stdio.h> //printf
 #include <string.h> //memset
@@ -12,35 +14,62 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-// Pour le seed de random
-#include <time.h>
+
+#include "bug.h"
+#include "perf.h"
 
 #define MAX_RECEIVED_BUFFER 4096
+#define OUTPUT_FILE "procTestB/data/receive.txt"
 
+// Décommenter cette ligne pour activer l'affichage de trace dans stderr
 //#define DEBUG
-
-void bug(char* msg){
-	fprintf(stderr, "%s",msg);
-	exit(1);
-}
 
 int main(int argc, char **argv)
 {
+	// Variable utilisées pour les mesures de performances
+	uint8_t perf_debit = 0;
+	uint8_t perf_latence = 0;
+	uint32_t cpt_msg = 0;
+	double perf_duration = 0; 
+	struct timeval perf_start_time;
+	struct timeval perf_end_time;
+
+	if (argc > 1) {
+		if (!strcmp(argv[1], "-d")) {
+			// test de perf de débit
+			perf_debit = 1;
+			fprintf(stderr, "-------------------------------------\n");
+			fprintf(stderr, "MESURE DE PERFORMANCE DE DÉBIT ACTIVE\n");
+			fprintf(stderr, "-------------------------------------\n");
+		} else if (!strcmp(argv[1], "-l")) {
+			// test de perf de latence
+			perf_latence = 1;
+			fprintf(stderr, "-------------------------------------\n");
+			fprintf(stderr, "MESURE DE PERFORMANCE DE LATENCE ACTIVE\n");
+			fprintf(stderr, "-------------------------------------\n");
+		}
+	}
+
 	pid_t canal_pid;
 	// Tube de communication entre les 2 processus
 	// Il faut deux tube pour communiquer dans les 2 sens
 	int tube_BtoCanal[2];
 	int tube_CanaltoB[2];
-	puts("Création d'un tube\n");
+
 	/* pipe 1*/
-	if (pipe(tube_BtoCanal) != 0) bug("Erreur dans pipe 1 \n");
+	if (pipe(tube_BtoCanal) != 0)
+		bug("Erreur dans pipe 1 \n");
 	/* pipe 2*/
-	if (pipe(tube_CanaltoB) != 0) bug("Erreur dans pipe 2 \n");
+	if (pipe(tube_CanaltoB) != 0)
+		bug("Erreur dans pipe 2 \n");
 
 	canal_pid = fork();    
-	if (canal_pid == -1) bug("Erreur dans fork \n");
+	if (canal_pid == -1)
+		bug("Erreur dans fork \n");
 
-	// processus fils: lance le canal pour pouvoir recevoir des données
+	/**
+	* Processus fils: lance le canal pour pouvoir recevoir des données
+	*/
 	if (canal_pid == 0){
 		// On remplace le stdout du proc par le pipe avec B
 		dup2(tube_CanaltoB[1],1);
@@ -52,36 +81,72 @@ int main(int argc, char **argv)
 		
 		// liste qui servira au execvp
 		char* arg_list[] = {"./myCanal", "0", NULL};
+
 		// On lance le myCanal
 		execv("myCanal", arg_list);
 		
 		bug("Erreur de execvp myCanal\n");
 
-	// processus père : recoie des données du canal et les écrit dans un fichier
+	/** 
+	 * processus père
+	 * reçoie des données du canal et les écrit dans un fichier
+	 */
 	} else {
 		char receiveBuffer[MAX_RECEIVED_BUFFER];
-		FILE* fOUT;
-		if((fOUT = fopen("procTestB/data/receive.txt","w"))==NULL) bug("Erreur dans fopen fOUT\n");
 
-		// Ferme les pipe inutiles
+		FILE* fOUT;
+		if ((fOUT = fopen(OUTPUT_FILE,"w")) == NULL)
+			bug("Erreur dans fopen fOUT\n");
+
+		// Ferme les pipes inutiles
 		close(tube_CanaltoB[1]);
 		close(tube_BtoCanal[0]);
 		close(tube_BtoCanal[1]);
+
+		fprintf(stderr, "--------------------------------------------------\n");
+		fprintf(stderr, "Le processus B est en marche\n");
+		fprintf(stderr, "Écriture des messages reçus  dans %s\n", OUTPUT_FILE);
+		fprintf(stderr, "Pressez Ctrl+C pour quitter\n");
+		fprintf(stderr, "--------------------------------------------------\n");
+
 #ifdef DEBUG
 		fprintf(stderr,"### PROC B: pid: %d)\n\n", getpid());
 #endif
-		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
-		sleep(1);
 		while(1){
-			// le canal va faire un déliver et on recoie les données avec read
-			read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
+			if (perf_debit == 1) {
+				if (cpt_msg < NB_MSG_1KB) {
+					// le canal va faire un déliver et on recoie les données avec read
+					read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
+					if (cpt_msg == 0) {
+						gettimeofday(&perf_start_time, NULL);
+					} 
+				} else {
+					gettimeofday(&perf_end_time, NULL);
+					perf_duration = compute_perf(&perf_start_time, &perf_end_time);
+					fprintf(stderr, "---------------------------------------------\n");
+					fprintf(stderr, "---- Durée test débit = %.4f sec       ----\n", perf_duration);
+					fprintf(stderr, "---- Débit max        =  125.0 MB/s      ----\n");
+					fprintf(stderr, "---- Débit mesuré     = %.3f MB/s       ----\n",250.0/perf_duration);
+					fprintf(stderr, "---- Ratio            = %.3f %%         ----\n",(250.0*100.0)/(perf_duration*125.0));
+					fprintf(stderr, "---------------------------------------------\n");
+					break;
+				}
+				cpt_msg ++;
+				fprintf(stderr, "%d message délivré\n", cpt_msg);
+			} else { 
+				// le canal va faire un déliver et on recoie les données avec read
+				read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
+			}
 #ifdef DEBUG
 			fprintf(stderr, "#### B à reçu : %s",receiveBuffer);
 			fflush(stderr);
 #endif
-			fwrite(receiveBuffer,sizeof(*receiveBuffer),strlen(receiveBuffer), fOUT);
-			fflush(fOUT);
-			memset(receiveBuffer,'\0', MAX_RECEIVED_BUFFER);
+			if (perf_debit == 0) {
+				fwrite(receiveBuffer, sizeof(*receiveBuffer), 
+						strlen(receiveBuffer), fOUT);
+				fflush(fOUT);
+				memset(receiveBuffer, '\0', MAX_RECEIVED_BUFFER);
+			}
 			
 		}
 		fclose(fOUT);

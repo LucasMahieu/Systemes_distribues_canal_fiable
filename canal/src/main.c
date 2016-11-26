@@ -14,7 +14,7 @@
 // Uncomment to enable debug traces
 #define DEBUG
 
-// #define DETECTOR
+//#define DETECTOR
 
 // Uncomment to enable the simulation of message lost
 //#define TEST_NO_SEND
@@ -44,8 +44,11 @@ int main(int argc, char **argv)
 		printf("Enter the number of the canal: 0 for server, 1 pour client\n");
 		return -1;
 	}
-
-	//Si c'est un server : coté de B par convention
+	
+	/** 
+	 * Coté server du canal
+	 * Dans notre cas il reçoit les messages, et les délivres
+	 */
 	if(!strcmp(argv[1],"0")){
 
 #ifdef DETECTOR
@@ -80,7 +83,7 @@ int main(int argc, char **argv)
 		// ici, la fonction ne va faire que délivrer/ack les messages reçus
 		while(1)
 		{
-			// try to receive some data, this is a blocking call
+			// Receive some data, this is a blocking call
 			if ((recv_len = recvfrom(s, &p, sizeof(p), 0,
 				(struct sockaddr *) &si_other, &slen)) == -1)
 					bug("recvfrom()");
@@ -93,10 +96,10 @@ int main(int argc, char **argv)
 					oldWaitingAck, p.size);
 			fprintf(stderr, "Le message reçu : %s\n", p.message);
 #endif
-			// Est ce que l'on doit ack le message ?
+			// Permet de savoir si on doit délivrer le message
 			check_in_window = in_window(oldWaitingAck, p.numPacket);
 
-			// YES : the pkt is in the right window
+			// OUI, le packet est dans la fenêtre
 			if (check_in_window == 1) { 
 				// if the packet has not been received yet, deliver it to B
 				// + update the Tab and the oldWaitingAck value
@@ -140,7 +143,7 @@ int main(int argc, char **argv)
 				p.ack = 1;
 				p.size = 0;
 
-				// packet number too low, need to resend the ack to canalA
+				// NON: Le packet a déjà été reçu, on le re ack
 				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+
 					sizeof(uint32_t)+sizeof(uint8_t),0, 
 					(struct sockaddr*) &si_other, slen) == -1) 
@@ -149,7 +152,9 @@ int main(int argc, char **argv)
 				fprintf(stderr, "Message n°%llu RE ack\n", p.numPacket);
 #endif
 			} else { 
-				// packet nummber too high, do nothing
+				// NON : le packet n'est pas dans la fenêtre
+				// On ne fait rien, on recevra se message à nouveau plus tard 
+				// quand sa sera le bon moment
 			}
 			// Clear message of the packet
 			memset(p.message,'\0', MAX_BUFLEN);
@@ -160,7 +165,11 @@ int main(int argc, char **argv)
 		}
 		close(s);
 	}
-	// Si c'est un client : il sera du coté de A
+	/** 
+	 * Coté 'client' du canal
+	 * Dans notre cas il envoie les messages à l'autre processus
+	 * Et s'assure qu'il les délivre
+	 */
 	else if(!strcmp(argv[1],"1")){
 #ifdef DEBUG
 	bug("### CANAL de A -- Thread principal d'envoi de données\n");
@@ -181,7 +190,7 @@ int main(int argc, char **argv)
 		uint32_t iReSend=0;
 		volatile uint32_t iReSendCpy = 0;
 
-		Time currentTime;
+		struct timeval currentTime;
 		gettimeofday(&currentTime, NULL);
 
 		// Création du thread qui receptionne les ack
@@ -195,7 +204,6 @@ int main(int argc, char **argv)
 		if (pthread_create(&receive_thread, NULL, receive_ack, (void*)&arg_thread)) 
 			bug("pthread create failure: ");
 		
-		// Processus d'envoi des messages
 		// structure à donner à poll() pour savoir si il y a des data à lire 
 		struct pollfd pfd[1];
 		pfd[0].fd = fileno(stdin);
@@ -205,7 +213,8 @@ int main(int argc, char **argv)
 
 		char message[MAX_BUFLEN];
 		uint64_t currentIDPacket=0;
-		// init packet
+
+		// Initialisation d'un packet vide qui servira de 'contenant' du message
 		Packet p;
 		Packet *toSendp=NULL;
 		p.source = getpid(); 	// processus source
@@ -213,6 +222,7 @@ int main(int argc, char **argv)
 		p.numPacket = currentIDPacket;
 		// is ack or not
 		p.ack = 0;
+		// Taille du message à envoyé, pas vraiment utile dans notre implèm
 		p.size=0;
 
 		uint8_t eof_received = 0;
@@ -233,7 +243,7 @@ int main(int argc, char **argv)
 #endif
 			}else{
 				// Si il y a assez de place pour le mémoriser 
-				if(eof_received == 0 && iMemorize < iReSendCpy+WINDOW_SIZE){
+				if((eof_received == 0) && (iMemorize < iReSendCpy+WINDOW_SIZE)){
 					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
 						if(ferror(stdin)) 
 							bug("## CANAL A: Erreur fgets\n");
@@ -241,17 +251,14 @@ int main(int argc, char **argv)
 							bug("Canal A : EOF Received\n");
 							eof_received = 1;
 						}
-						//stop=1;
-						//continue;
 					}
 #ifdef DEBUG
-					//bug("### Canal A\n");
-					//fprintf(stderr, "-----------------------------------\n");
-					//fprintf(stderr,"Canal A a reçu : %s ", message);
-					//fprintf(stderr, "-----------------------------------\n");
-					//fflush(stderr);
+					bug("### Canal A\n");
+					fprintf(stderr, "-----------------------------------\n");
+					fprintf(stderr,"Canal A a reçu : %s ", message);
+					fprintf(stderr, "-----------------------------------\n");
 #endif
-					if(!eof_received){
+					if(eof_received == 0){
 						// Filling the packet with some information and the data
 						p.size = strlen(message);
 						p.ack = 0;
@@ -263,12 +270,16 @@ int main(int argc, char **argv)
 						// Mise à jour du temps
 						update_timeout(&(windowTable[iMemorize%WINDOW_SIZE]), &currentTime); 
 						iMemorize++;
-#ifdef DEBUG
-						//printf("Message reçu de A: '%s'\n", p.message);
-#endif
+					}
+				} else if (eof_received == 1) {
+					if (iReSendCpy == iMemorize) {
+						// in that case, we are sure to have send all msg
+						stop=1;
+						continue;
 					}
 				}
 			}
+			// update the current time
 			gettimeofday(&currentTime,NULL);
 
 #ifdef DEBUG

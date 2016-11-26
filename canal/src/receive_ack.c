@@ -7,7 +7,7 @@
 #include "structure.h"
 
 #define DEBUG
-#define DETECTOR
+//#define DETECTOR
 
 // Thread de réception des ack du canal A
 void* receive_ack(void* arg){
