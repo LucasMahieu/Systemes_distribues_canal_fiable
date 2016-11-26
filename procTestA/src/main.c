@@ -13,12 +13,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 // Pour le seed de random
-#include	<time.h>
+#include <time.h>
 
 #define MAX_TOSEND_BUFFER 4096
-#define INPUT_FILE "procTestA/data/toSend_2.txt"
+#define INPUT_FILE "procTestA/data/toSend.txt"
 
-//#define DEBUG
+#define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);

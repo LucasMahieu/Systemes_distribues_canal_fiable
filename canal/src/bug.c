@@ -8,6 +8,6 @@
 
 void bug(char *s)
 {
-	fprintf(stderr,"%s",s);
+	fprintf(stderr,"%s \n",s);
 	fflush(stderr);
 }

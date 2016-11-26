@@ -1,0 +1,21 @@
+0000000000 INIT
+0000000001 JE SUIS TON PERE, EST CE QUE TU ME RECOIS.
+0000000002 Harry Potter : Le seul film où l'on verra des mecs se servir d'un balai.
+0000000003 Si une fille dit que tu es moche c'est qu'elle est jalouse.
+0000000004 Si un mec dit que t'es moche c'est qu'il est méchant.
+0000000005 Si un enfant dit que tu es moche, t'es moche!
+0000000006 Un boomerang c'est comme un frisbee mais pour ceux qui n'ont pas d'amis.
+0000000007 Alors t'en est où dans tes relations amoureuses?
+0000000008 Disons que j'ai autant de chance que l'écureuil dans l'Age de glace.
+0000000009 Les murs ont des oreilles, j'ferais en sorte qu'ils n'aient pas de bouche.
+0000000010 Déodorant efficace 72 heures. Sinon y a des douches. C'est bien aussi.
+0000000011 La langue française est vraiment drôle, en effet le mot court est plus long que le mot long.
+0000000012 Tu es mature jusqu'à ce que tu vois du papier bulle.
+0000000013 Ma capacité de concentration est si courte que.. Oh un papillon!
+0000000014 Qui se ressemble, s'assemble. Je finirai ma vie avec mon miroir.
+0000000015 Je ne suis pas grosse, c'est juste que je suis tellement sexy que sa déborde.
+0000000016 Si les hommes porte la cravate c'est que sa fait moins con qu'une laisse.
+0000000017 Le symbole "&" ressemble à un mec qui fait glisser son cul par terre.
+0000000018 J'ai un petit ami qui s'appelle Wifi et nous avons une bonne connexion.
+0000000019 Quand vous voulez vraiment gifler quelqu'un, faites le et dites « Moustique ! »
+

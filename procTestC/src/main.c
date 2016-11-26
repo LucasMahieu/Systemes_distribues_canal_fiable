@@ -58,6 +58,14 @@ int main(int argc, char **argv)
 		// on ferme les 2 pipes inutile
 		close(tube_CtoCanal[1]);
 		close(tube_CanaltoC[0]);
+
+
+		// sleep(3);
+		// fprintf(stdout, "salut\n");
+		// sleep(2);
+		// fprintf(stdout, "toi \n");
+		// exit(1);
+
 #ifdef DEBUG
 		fprintf(stderr, "### lancer de canal\n");
 		fprintf(stderr, "Fermeture de l'entrée du tube A to Canal dans le proc fils (pid = %d)\n", getpid());
@@ -74,6 +82,7 @@ int main(int argc, char **argv)
 	} else {
 		srand(time(NULL));
 
+		int messageToRead;
 		char sendBuffer[BUFFER_SIZE];
 		memcpy(sendBuffer, "Are you alive?", strlen("Are you alive?"));
 
@@ -103,7 +112,7 @@ int main(int argc, char **argv)
 #endif
 		
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
-		sleep(1);
+		// sleep(1);
 		while(1){
 
 #ifdef DEBUG
@@ -117,14 +126,21 @@ int main(int argc, char **argv)
 			// fonction que doit appeler C pour envoyer des données à D par le canal (simple printf dans stdout)
 			fprintf(stdout, "%s\n", sendBuffer);
 
+
+			// if(fgets(sendBuffer, 256, stdin) == NULL) bug("Erreur de communication avec D");
+			read(tube_CanaltoC[0], sendBuffer, BUFFER_SIZE);
+			fprintf(stderr, "lol %s\n", sendBuffer);
 			// réception de signe de vie de D
-			if (poll(pfd,1,TIME_TO_WAIT*1000) > 0) {
-				fgets(sendBuffer, BUFFER_SIZE, stdin);
-				bug("### Proc C\n");
-				fprintf(stderr, "-----------------------------------------------------------------------------\n");
-				fprintf(stderr, "D est en vie %s\n", sendBuffer);
-				fprintf(stderr, "-----------------------------------------------------------------------------\n");
-			}
+			// messageToRead = poll(pfd,1,TIME_TO_WAIT*1000);
+			// if (messageToRead>0) {
+			// 	read(fileno(stdin), sendBuffer, BUFFER_SIZE);
+			// 	bug("### Proc C\n");
+			// 	fprintf(stderr, "-----------------------------------------------------------------------------\n");
+			// 	fprintf(stderr, "D est en vie : %s\n", sendBuffer);
+			// 	fprintf(stderr, "-----------------------------------------------------------------------------\n");
+			// }else{
+			// 	fprintf(stderr, "Nothing to read\n");
+			// }
 		}
 		fprintf(stderr, "### PROC C : TEST FINISHED\n");
 		close(tube_CanaltoC[0]);

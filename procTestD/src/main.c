@@ -20,7 +20,7 @@
 
 #define MAX_RECEIVED_BUFFER 256
 
-#define DEBUG
+// #define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -39,7 +39,6 @@ int main(int argc, char **argv)
 	if (pipe(tube_DtoCanal) != 0) bug("Erreur dans pipe 1 \n");
 	/* pipe 2*/
 	if (pipe(tube_CanaltoD) != 0) bug("Erreur dans pipe 2 \n");
-
 	canal_pid = fork();    
 	if (canal_pid == -1) bug("Erreur dans fork \n");
 
@@ -52,7 +51,13 @@ int main(int argc, char **argv)
 		// On ferme les 2 fd dont on n'a pas besoin
 		close(tube_CanaltoD[0]);
 		close(tube_DtoCanal[1]);
-		
+
+		// sleep(2);
+		// fprintf(stdout, "salut\n");
+		// sleep(2);
+		// fprintf(stdout, "toi \n");
+
+
 		// liste qui servira au execvp
 		char* arg_list[] = {"./myCanal", "0", NULL};
 		// On lance le myCanal
@@ -64,7 +69,7 @@ int main(int argc, char **argv)
 	} else {
 		char receiveBuffer[MAX_RECEIVED_BUFFER];
 		char message[MAX_RECEIVED_BUFFER];
-		memcpy(receiveBuffer, "Yes I am!", strlen("Yes I am!"));
+		memcpy(message, "Yes I am!", strlen("Yes I am!"));
 
 
 		dup2(tube_DtoCanal[1],1);
@@ -80,17 +85,20 @@ int main(int argc, char **argv)
 		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
 		sleep(1);
 		while(1){
-			// le canal va faire un déliver et on recoie les données avec read
+			// le canal va faire un déliver et on recoit les données avec read
+			// fprintf(stderr, "avant lecture dans D\n");
 			read(tube_CanaltoD[0], receiveBuffer, MAX_RECEIVED_BUFFER);
+			fprintf(stderr, "#### D à reçu : %s", receiveBuffer);
+			// fprintf(stderr, "apres lecture dans D\n");
 #ifdef DEBUG
 			bug("### Proc D\n");
 			fprintf(stderr, "-----------------------------------------------------------------------------\n");
 			fprintf(stderr, "#### D à reçu : %s", receiveBuffer);
 			fprintf(stderr, "-----------------------------------------------------------------------------\n");
-			fflush(stderr);
 #endif
-			if (strcmp(receiveBuffer, "Are you alive?")){
+			if (!strcmp(receiveBuffer, "Are you alive?\n")){
 				fprintf(stdout, "%s\n", message);
+				fprintf(stderr, "On répond : %s\n", message);
 			}
 			memset(receiveBuffer,'\0', MAX_RECEIVED_BUFFER);
 			

@@ -9,5 +9,6 @@
 void deliver(char* s) 
 {
 	fprintf(stdout, "%s", s);
+	fprintf(stderr, "Le message écrit dans le fd : %s", s);
 	fflush(stdout);
 }

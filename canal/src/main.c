@@ -14,6 +14,8 @@
 // Uncomment to enable debug traces
 #define DEBUG
 
+// #define DETECTOR
+
 // Uncomment to enable the simulation of message lost
 //#define TEST_NO_SEND
 #ifdef TEST_NO_SEND
@@ -46,6 +48,10 @@ int main(int argc, char **argv)
 	//Si c'est un server : coté de B par convention
 	if(!strcmp(argv[1],"0")){
 
+#ifdef DETECTOR
+		char messageFromD[256];
+#endif
+		
 		// Sockaddr to receive data
 		Sockaddr_in si_me;
 		memset((char *) &si_me, 0, sizeof(si_me));
@@ -54,7 +60,7 @@ int main(int argc, char **argv)
 		si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
 		//bind socket to port
-		if(bind(s, (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) bug("bind");
+		if(bind(s, (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) bug("bind not correct");
 
 		// Init the Tab to store messages before delivering them
 		uint64_t Tab[WINDOW_SIZE];
@@ -98,6 +104,12 @@ int main(int argc, char **argv)
 
 					// Fonction DELIVER a B
 					deliver(p.message);
+#ifdef DETECTOR
+					fprintf(stderr, "avant lecture dans proc\n");
+					if(fgets(messageFromD, 256, stdin) == NULL) bug("Erreur de communication avec D");
+					fprintf(stderr, "%s\n", messageFromD);
+					fprintf(stderr, "apres lecture dans proc\n");
+#endif				
 #ifdef DEBUG
 					fprintf(stderr, "Message délivré\n");
 #endif

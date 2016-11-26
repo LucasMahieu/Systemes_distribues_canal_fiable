@@ -66,9 +66,9 @@ clean:
 	@(cd $(PROG2_DIR) && $(MAKE) $@)
 	@rm myCanal
 	@(cd $(PROG3_DIR) && $(MAKE) $@)
-	@rm myProcTestB
+	@rm myProcTestC
 	@(cd $(PROG4_DIR) && $(MAKE) $@)
-	@rm myProcTestB
+	@rm myProcTestD
 	@rm $(PROG1_DIR)data/receive.txt
 	@touch $(PROG1_DIR)data/receive.txt
 
