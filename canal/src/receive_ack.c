@@ -32,6 +32,7 @@ void* receive_ack(void* arg){
 #endif
 		// Enable the ack flag for the packet received
 		pTable[(p.numPacket)%WINDOW_SIZE].p.ack = 1;
+
 		// get the current value of iReSend
 		pthread_mutex_lock(&mutex_iReSend); // lock
 		iReSendCpy = *pReSend;

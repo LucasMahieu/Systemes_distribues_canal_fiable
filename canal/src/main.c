@@ -310,7 +310,9 @@ int main(int argc, char **argv)
 			// Choix entre envoyer ou RE envoyer des messages
 
 			// On test si le plus vieux des msg non ack a dépassé son timeout
-			if ( iReSendCpy != iMemorize
+			if ( iReSendCpy < iMemorize
+				 &&
+				 iReSendCpy < iSend
 				 &&
 				 ( windowTable[iReSendCpy%WINDOW_SIZE].timeout.tv_sec < currentTime.tv_sec 
 					|| 
