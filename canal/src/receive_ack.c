@@ -6,7 +6,7 @@
 #include "receive_ack.h"
 #include "structure.h"
 
-//#define DEBUG
+// #define DEBUG
 //#define DETECTOR
 
 
@@ -32,9 +32,9 @@ void* receive_ack(void* arg){
 
 #ifdef DEBUG
 		fprintf(stderr, ">>>> ack n° %llu recu <<<<\n", p.numPacket);
-		for (i = 0; i < WINDOW_SIZE; i++) {
-			fprintf(stderr, "%d -> %d\n", i, pTable[i].p.ack);
-		}
+		// for (i = 0; i < WINDOW_SIZE; i++) {
+		// 	fprintf(stderr, "%d -> %d\n", i, pTable[i].p.ack);
+		// }
 #endif
 		// get the current value of iReSend
 		pthread_mutex_lock(&mutex_iReSend); // lock
@@ -55,8 +55,8 @@ void* receive_ack(void* arg){
 #endif
 			}
 #ifdef DEBUG
-		fprintf(stderr, "iReSend %d >>devient>> %d (+%d)\n", 
-				p.numPacket, iReSendCpy, iReSendCpy - p.numPacket);
+		// fprintf(stderr, "iReSend %d >>devient>> %d (+%d)\n", 
+		// 		p.numPacket, iReSendCpy, iReSendCpy - p.numPacket);
 #endif
 			pthread_mutex_lock(&mutex_iReSend); // lock
 			*pReSend = iReSendCpy;

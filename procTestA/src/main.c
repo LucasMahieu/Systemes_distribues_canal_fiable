@@ -22,7 +22,7 @@
 #define INPUT_FILE "procTestA/data/toSend.txt"
 
 // Uncomment to be verbose tracing message in stderr
-//#define DEBUG
+// #define DEBUG
 
 
 int main(int argc, char **argv)
@@ -125,11 +125,11 @@ int main(int argc, char **argv)
 				}
 			}
 #ifdef DEBUG
-			bug("### Proc A\n");
-			fprintf(stderr, "---------------------------------------------\n");
-			fprintf(stderr,"A envoie: %s ", toSendBuffer);
-			fprintf(stderr, "---------------------------------------------\n");
-			fflush(stderr);
+			// bug("### Proc A\n");
+			// fprintf(stderr, "---------------------------------------------\n");
+			// fprintf(stderr,"A envoie: %s ", toSendBuffer);
+			// fprintf(stderr, "---------------------------------------------\n");
+			// fflush(stderr);
 #endif
 			// fonction que doit appeler A pour envoyer des données à B 
 			// par le canal

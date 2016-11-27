@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 				if (test_no_ack%MODULO_TEST_NO_ACK != 0) {
 #endif
 					if (sendto(s, &p, sizeof(uint64_t)+sizeof(uint32_t)+
-						sizeof(uint32_t)+sizeof(uint8_t), 0, 
+						sizeof(uint32_t)+sizeof(uint8_t)+7, 0, 
 						(struct sockaddr*) &si_other, slen) == -1) 
 							bug("Error sendto() the ack");
 #ifdef DEBUG
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
 
 				// NON: Le packet a déjà été reçu, on le re ack
 				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+
-					sizeof(uint32_t)+sizeof(uint8_t),0, 
+					sizeof(uint32_t)+sizeof(uint8_t)+7,0, 
 					(struct sockaddr*) &si_other, slen) == -1) 
 						bug("canal B RE send : sendto()");
 #ifdef DEBUG

@@ -22,7 +22,7 @@
 #define OUTPUT_FILE "procTestB/data/receive.txt"
 
 // Décommenter cette ligne pour activer l'affichage de trace dans stderr
-//#define DEBUG
+// #define DEBUG
 
 int main(int argc, char **argv)
 {
@@ -139,9 +139,9 @@ int main(int argc, char **argv)
 				read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
 			}
 #ifdef DEBUG
-			fprintf(stderr, "#### B à reçu : %s",receiveBuffer);
-			fprintf(stderr, "-------------------------------------------\n");
-			fflush(stderr);
+			// fprintf(stderr, "#### B à reçu : %s",receiveBuffer);
+			// fprintf(stderr, "-------------------------------------------\n");
+			// fflush(stderr);
 #endif
 			if (perf_debit == 0) {
 				fwrite(receiveBuffer, sizeof(*receiveBuffer), 
