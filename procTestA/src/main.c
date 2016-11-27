@@ -109,16 +109,20 @@ int main(int argc, char **argv)
 		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
 		sleep(1);
 		while (!stop) {
-			// Lecture d'une ligne du fichier de test
-			if ((perf_debit == 1) && (cpt > NB_MSG_1KB)){
-				stop = 1;
-				continue;
-			} else if ((perf_debit == 0) && 
-					(fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN) == NULL)) {
-				
-				bug("## PROC A : No more data, EOF read\n");
-				stop = 1;
-				continue;
+			if (perf_debit == 1) { 
+				if (cpt > NB_MSG_1KB){
+					// Le test de perf est fini
+					stop = 1;
+					continue;
+				}
+				cpt++;
+			} else {
+				// Lecture d'une ligne du fichier de test
+				if (fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN) == NULL) {
+					bug("## PROC A : No more data, EOF read\n");
+					stop = 1;
+					continue;
+				}
 			}
 #ifdef DEBUG
 			bug("### Proc A\n");
@@ -130,10 +134,10 @@ int main(int argc, char **argv)
 			// fonction que doit appeler A pour envoyer des données à B 
 			// par le canal
 			fwrite(toSendBuffer, sizeof(char), strlen(toSendBuffer), fOUT);
+
 			if (perf_debit == 0) {
 				memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
 			}
-			cpt++;
 		}
 		fprintf(stderr, "### PROC A : TEST FINISHED\n");
 		fclose(fIN);

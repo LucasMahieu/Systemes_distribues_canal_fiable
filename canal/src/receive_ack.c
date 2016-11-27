@@ -21,7 +21,7 @@ void* receive_ack(void* arg){
 #endif
 	while(1){
 		if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint64_t)+sizeof(uint32_t)+
-					sizeof(uint8_t)+sizeof(uint32_t), 0, 
+					sizeof(uint32_t)+sizeof(uint8_t), 0, 
 					(struct sockaddr *) &(((ArgAck*)(arg))->si_other), 
 					&(((ArgAck*)(arg))->slen)) == -1) 
 			bug("thread ack recvfrom()");
@@ -35,7 +35,7 @@ void* receive_ack(void* arg){
 		fprintf(stdout, ">>>> ack n° %llu recu <<<<\n", p.numPacket);
 #endif
 		// Enable the ack flag for the packet received
-		pTable[p.numPacket%WINDOW_SIZE].p.ack = 1;
+		pTable[(p.numPacket)%WINDOW_SIZE].p.ack = 1;
 		// get the current value of iReSend
 		pthread_mutex_lock(&mutex_iReSend); // lock
 		iReSendCpy = *pReSend;
@@ -43,7 +43,7 @@ void* receive_ack(void* arg){
 
 		// If the ack received was for the oldest packet, update iReSend 
 		if(p.numPacket == iReSendCpy){
-			while(pTable[iReSendCpy%WINDOW_SIZE].p.ack!=0){
+			while (pTable[(iReSendCpy)%WINDOW_SIZE].p.ack == 1) {
 				// Si cette case était à 1, on la met à zero pour le prochain passage
 				pTable[iReSendCpy%WINDOW_SIZE].p.ack = 0;
 				iReSendCpy++;
