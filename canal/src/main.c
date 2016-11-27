@@ -12,7 +12,7 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
- #define DEBUG
+// #define DEBUG
 
 //#define DETECTOR
 

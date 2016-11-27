@@ -6,7 +6,7 @@
 #include "receive_ack.h"
 #include "structure.h"
 
-#define DEBUG
+//#define DEBUG
 //#define DETECTOR
 
 
@@ -15,7 +15,7 @@ void* receive_ack(void* arg){
 	WaitAckElement* pTable = (WaitAckElement*)(((ArgAck*)(arg))->windowTable);
 	uint32_t* pReSend = (uint32_t*)(((ArgAck*)(arg))->iReSend);
 	uint32_t iReSendCpy = 0;
-
+	int i = 0;
 	Packet p;
 #ifdef DEBUG
 	bug("### CANAL de A -- Thread de reception des ack\n");
@@ -27,12 +27,15 @@ void* receive_ack(void* arg){
 					&(((ArgAck*)(arg))->slen)) == -1) 
 			bug("thread ack recvfrom()");
 
-#ifdef DEBUG
-		fprintf(stderr, ">>>> ack n° %llu recu <<<<\n", p.numPacket);
-#endif
 		// Enable the ack flag for the packet received
 		pTable[(p.numPacket)%WINDOW_SIZE].p.ack = 1;
 
+#ifdef DEBUG
+		fprintf(stderr, ">>>> ack n° %llu recu <<<<\n", p.numPacket);
+		for (i = 0; i < WINDOW_SIZE; i++) {
+			fprintf(stderr, "%d -> %d\n", i, pTable[i].p.ack);
+		}
+#endif
 		// get the current value of iReSend
 		pthread_mutex_lock(&mutex_iReSend); // lock
 		iReSendCpy = *pReSend;
