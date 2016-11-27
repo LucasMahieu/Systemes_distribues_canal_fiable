@@ -86,21 +86,23 @@ int main(int argc, char **argv)
 		sleep(1);
 		while(1){
 			// le canal va faire un déliver et on recoit les données avec read
-			// fprintf(stderr, "avant lecture dans D\n");
+			memset(receiveBuffer,'\0', MAX_RECEIVED_BUFFER);
 			read(tube_CanaltoD[0], receiveBuffer, MAX_RECEIVED_BUFFER);
-			fprintf(stderr, "#### D à reçu : %s", receiveBuffer);
-			// fprintf(stderr, "apres lecture dans D\n");
+			fprintf(stderr, "#### D à reçu un message\n");
+			// fprintf(stderr, "#### D à reçu : %s", receiveBuffer);
+
 #ifdef DEBUG
 			bug("### Proc D\n");
 			fprintf(stderr, "-----------------------------------------------------------------------------\n");
 			fprintf(stderr, "#### D à reçu : %s", receiveBuffer);
 			fprintf(stderr, "-----------------------------------------------------------------------------\n");
 #endif
-			if (!strcmp(receiveBuffer, "Are you alive?\n")){
+			
+			// if (!strcmp(receiveBuffer, "Are you alive?\n")){
+				fprintf(stderr, "On fait un signe de vie\n");
+				fprintf(stderr, "\n");
 				fprintf(stdout, "%s\n", message);
-				fprintf(stderr, "On répond : %s\n", message);
-			}
-			memset(receiveBuffer,'\0', MAX_RECEIVED_BUFFER);
+			// }
 			
 		}
 		close(tube_DtoCanal[1]);

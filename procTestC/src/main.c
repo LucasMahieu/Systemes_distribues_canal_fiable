@@ -16,15 +16,22 @@
 // to poll the pipe
 #include <poll.h>
 
+// Pour les descripteurs de fichier
+#include <unistd.h>
+#include <fcntl.h>
 
 // Pour le seed de random
 #include <time.h>
 
+// Pour sig kill
+#include <signal.h>
+
+#define TimeToWait 2
 #define BUFFER_SIZE 256
 #define INPUT_FILE "procTestA/data/toSend_2.txt"
 //time in seconds
-#define TIME_TO_WAIT 2
-#define DEBUG
+#define NB_TOUR 2
+// #define DEBUG
 
 void bug(char* msg){
 	fprintf(stderr, "%s",msg);
@@ -60,7 +67,7 @@ int main(int argc, char **argv)
 		close(tube_CanaltoC[0]);
 
 
-		sleep(3);
+		// sleep(3);
 		// fprintf(stdout, "salut\n");
 		// sleep(2);
 		// fprintf(stdout, "toi \n");
@@ -82,7 +89,8 @@ int main(int argc, char **argv)
 	} else {
 		srand(time(NULL));
 
-		int messageToRead;
+		int messageToRead = 0;
+		int cpt = 0;
 		char sendBuffer[BUFFER_SIZE];
 		memcpy(sendBuffer, "Are you alive?", strlen("Are you alive?"));
 
@@ -97,9 +105,10 @@ int main(int argc, char **argv)
 		close(tube_CtoCanal[0]);
 		close(tube_CanaltoC[1]);
 
+#ifdef DEBUG
 		// structures temporelles
 		struct timeval timeToPrint;
-
+#endif
 		// structure à donner à poll() pour savoir si il y a des data à lire 
 		struct pollfd pfd[1];
 		pfd[0].fd = fileno(stdin);
@@ -112,7 +121,7 @@ int main(int argc, char **argv)
 #endif
 		
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
-		// sleep(1);
+		sleep(1);
 		while(1){
 
 #ifdef DEBUG
@@ -123,25 +132,37 @@ int main(int argc, char **argv)
 			fprintf(stderr, "-----------------------------------------------------------------------------\n");
 			fflush(stderr);
 #endif
+			cpt++;
 			// fonction que doit appeler C pour envoyer des données à D par le canal (simple printf dans stdout)
+			sleep(TimeToWait);
 			fprintf(stdout, "%s\n", sendBuffer);
 
+			
 
-			fprintf(stderr, "Ca va lire\n");
-			if(fgets(sendBuffer, 2, stdin) == NULL) bug("Erreur de communication avec D");
-			// read(tube_CanaltoC[0], sendBuffer, 1);
-			fprintf(stderr, "lol %s\n", sendBuffer);
+			// fprintf(stderr, "Ca va lire\n");
+			// if(fgets(sendBuffer, 20, stdin) == NULL) bug("Erreur de communication avec D");
+			// // read(tube_CanaltoC[0], sendBuffer, 1);
+			// fprintf(stderr, "lol %s\n", sendBuffer);
 			// réception de signe de vie de D
-			// messageToRead = poll(pfd,1,TIME_TO_WAIT*1000);
-			// if (messageToRead>0) {
-			// 	read(fileno(stdin), sendBuffer, BUFFER_SIZE);
-			// 	bug("### Proc C\n");
-			// 	fprintf(stderr, "-----------------------------------------------------------------------------\n");
-			// 	fprintf(stderr, "D est en vie : %s\n", sendBuffer);
-			// 	fprintf(stderr, "-----------------------------------------------------------------------------\n");
-			// }else{
-			// 	fprintf(stderr, "Nothing to read\n");
-			// }
+			messageToRead = poll(pfd,1,0);
+			if (messageToRead>0) {
+				cpt=0;
+				read(fileno(stdin), sendBuffer, BUFFER_SIZE);
+				bug("### Proc C\n");
+				fprintf(stderr, "-----------------------------------------------------------------------------\n");
+				fprintf(stderr, "D est en vie\n");
+				fprintf(stderr, "-----------------------------------------------------------------------------\n");
+				fprintf(stderr, "\n");
+			}else{
+				fprintf(stderr, "Pas de signe de vie ce tour ci\n");
+				fprintf(stderr, "Attention, plus que %d tour(s) de %d secondes avant la déclaration de mort\n", NB_TOUR-cpt, TimeToWait);
+
+				if (NB_TOUR-cpt <= 0) {
+					fprintf(stderr, "### PROC C : D est mort, terminaison de C\n");
+					kill(canal_pid, SIGINT);
+					break;
+				}
+			}
 		}
 		fprintf(stderr, "### PROC C : TEST FINISHED\n");
 		close(tube_CanaltoC[0]);

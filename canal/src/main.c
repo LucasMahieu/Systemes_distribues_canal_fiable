@@ -14,7 +14,7 @@
 // Uncomment to enable debug traces
 // #define DEBUG
 
-// #define DETECTOR
+#define DETECTOR
 
 // Uncomment to enable the simulation of message lost
 //#define TEST_NO_SEND
@@ -30,12 +30,6 @@
 
 int main(int argc, char **argv)
 {
-	while(1) {
-		sleep(1);
-		fprintf(stderr, "salut error\n");
-		printf("azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azer azert");
-		fsync(fileno(stdout));
-	}
 	Sockaddr_in si_other;
 	Socket s;
 	//slen to store the length of the address when we receive a packet,
@@ -56,6 +50,7 @@ int main(int argc, char **argv)
 
 #ifdef DETECTOR
 		char messageFromD[256];
+		int messageToRead;
 #endif
 
 		// Sockaddr to receive data
@@ -111,10 +106,8 @@ int main(int argc, char **argv)
 					// Fonction DELIVER a B
 					deliver(p.message);
 #ifdef DETECTOR
-					fprintf(stderr, "avant lecture dans proc\n");
-					if(fgets(messageFromD, 256, stdin) == NULL) bug("Erreur de communication avec D");
-					fprintf(stderr, "%s\n", messageFromD);
-					fprintf(stderr, "apres lecture dans proc\n");
+					read(fileno(stdin), messageFromD, 256);
+					// fprintf(stderr, "Message à envoyer (canal D) : %s\n", messageFromD);
 #endif				
 #ifdef DEBUG
 					fprintf(stderr, "Message délivré\n");
