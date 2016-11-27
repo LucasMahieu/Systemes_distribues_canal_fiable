@@ -21,8 +21,7 @@ typedef struct {
 
 } ArgAck;
 
-// This thread is use to protect iReSend indice from main and receive_ack thread
-static pthread_mutex_t mutex_iReSend = PTHREAD_MUTEX_INITIALIZER;
+extern pthread_mutex_t mutex_iReSend;
 
 void* receive_ack(void* arg);
 

@@ -28,8 +28,14 @@
 	#define MODULO_TEST_NO_ACK 2
 #endif
 
+pthread_mutex_t mutex_iReSend;
+
 int main(int argc, char **argv)
 {
+	// Mutex to protect iReSend from receive ack thread
+	if (pthread_mutex_init(&mutex_iReSend, NULL) != 0)
+		bug("mutex_iReSend init failed\n");
+
 	Sockaddr_in si_other;
 	Socket s;
 	//slen to store the length of the address when we receive a packet,
@@ -327,7 +333,7 @@ int main(int argc, char **argv)
 					0, (struct sockaddr *) &si_other, slen)==-1) 
 						bug("sendto()");
 #ifdef DEBUG
-				fprintf(stderr,"### CANAL A     ##################\n");
+				fprintf(stderr,"\n### CANAL A     ##################\n");
 				fprintf(stderr,"RE envoi de : (%u, %"PRIu64", %u)\n", 
 						toSendp->source, toSendp->numPacket, toSendp->ack);
 				//fprintf(stderr,"Message RE envoyé: %s\n", toSendp->message);
@@ -335,7 +341,7 @@ int main(int argc, char **argv)
 				fprintf(stderr,"iReSend = %u\n",iReSendCpy);
 				fprintf(stderr,"iSend = %u\n", iSend);
 				fprintf(stderr,"iMemorize = %u\n",iMemorize);
-				fprintf(stderr,"----------------------------------\n\n");
+				fprintf(stderr,"----------------------------------\n");
 #endif
 			// Si on a pas de msg qui ont dépassé le timeout, 
 			} else if (iSend < iMemorize) {
@@ -356,11 +362,11 @@ int main(int argc, char **argv)
 				fprintf(stderr,"Envoi de : (%u, %"PRIu64", %u)\n", 
 						toSendp->source, toSendp->numPacket, toSendp->ack);
 				//fprintf(stderr, "Message envoyé : %s\n", toSendp->message);
-				fprintf(stderr,"----------------------------------\n\n");
+				fprintf(stderr,"----------------------------------\n");
 				fprintf(stderr,"iReSend = %u\n",iReSendCpy);
 				fprintf(stderr,"iSend = %u\n", iSend);
 				fprintf(stderr,"iMemorize = %u\n",iMemorize);
-				fprintf(stderr,"----------------------------------\n\n");
+				fprintf(stderr,"----------------------------------\n");
 #endif
 			}
 			//clear the buffer 

@@ -50,6 +50,10 @@ void* receive_ack(void* arg){
 		// fflush(stderr);
 #endif
 			}
+#ifdef DEBUG
+		fprintf(stderr, "iReSend %d >>devient>> %d (+%d)\n", 
+				p.numPacket, iReSendCpy, iReSendCpy - p.numPacket);
+#endif
 			pthread_mutex_lock(&mutex_iReSend); // lock
 			*pReSend = iReSendCpy;
 			pthread_mutex_unlock(&mutex_iReSend); // unlock
