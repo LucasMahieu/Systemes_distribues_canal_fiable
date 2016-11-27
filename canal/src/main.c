@@ -331,7 +331,7 @@ int main(int argc, char **argv)
 				toSendp = &(windowTable[iSend%WINDOW_SIZE].p);
 
 				// On maj le timeout du packet à envoyer
-				update_timeout( &(windowTable[iSend%WINDOW_SIZE]), &currentTime); 
+				update_timeout(&(windowTable[iSend%WINDOW_SIZE]), &currentTime); 
 				iSend++;
 
 				// Send the pakcet on the canal

@@ -13,7 +13,8 @@
 #define SERVER "127.0.0.1"	// IP of the process that receives messages
 #define PORT 8888   		//The port on which to listen for incoming data
 
-#define MAX_BUFLEN 4096		//Max length of buffer (for messages)
+//Max length of buffer (for messages)
+#define MAX_BUFLEN 2000
 
 typedef struct sockaddr_in Sockaddr_in;
 typedef int Socket;

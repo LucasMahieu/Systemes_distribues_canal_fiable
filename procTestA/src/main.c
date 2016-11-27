@@ -17,7 +17,7 @@
 #include "bug.h"
 #include "perf.h"
 
-#define MAX_TOSEND_BUFFER 4096
+#define MAX_TOSEND_BUFFER 2000
 
 #define INPUT_FILE "procTestA/data/toSend.txt"
 

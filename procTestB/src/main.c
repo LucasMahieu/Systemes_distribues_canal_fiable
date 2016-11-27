@@ -18,7 +18,7 @@
 #include "bug.h"
 #include "perf.h"
 
-#define MAX_RECEIVED_BUFFER 4096
+#define MAX_RECEIVED_BUFFER 2000
 #define OUTPUT_FILE "procTestB/data/receive.txt"
 
 // Décommenter cette ligne pour activer l'affichage de trace dans stderr
@@ -143,12 +143,12 @@ int main(int argc, char **argv)
 			fprintf(stderr, "-------------------------------------------\n");
 			fflush(stderr);
 #endif
-			//if (perf_debit == 0) {
+			if (perf_debit == 0) {
 				fwrite(receiveBuffer, sizeof(*receiveBuffer), 
 						strlen(receiveBuffer), fOUT);
 				fflush(fOUT);
 				memset(receiveBuffer, '\0', MAX_RECEIVED_BUFFER);
-			//}
+			}
 			
 		}
 		fclose(fOUT);
