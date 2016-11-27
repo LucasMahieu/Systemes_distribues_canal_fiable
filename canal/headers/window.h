@@ -15,13 +15,12 @@
 #define MAX_TV_USEC       999999
 #define WINDOW_SIZE 1000
 
-typedef struct timeval Time;
 typedef struct {
 	Packet p;
-	Time timeout;
+	struct timeval timeout;
 } WaitAckElement;
 
-void update_timeout(WaitAckElement* e, Time* t); 
+void update_timeout(struct timeval *e, struct timeval *t); 
 uint8_t in_window(uint64_t fastOfUs,uint64_t numPacket);
 uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab);
 

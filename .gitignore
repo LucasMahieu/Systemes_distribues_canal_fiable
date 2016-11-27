@@ -10,6 +10,7 @@ myProcTestD
 *.swp
 procTestB/data/receive.txt
 *.log
+log*
 *.aux
 *.synctex.gz
 rapport.pdf

@@ -12,11 +12,9 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
-// #define DEBUG
+ #define DEBUG
 
-
-#define DETECTOR
-
+//#define DETECTOR
 
 // Uncomment to enable the simulation of message lost
 //#define TEST_NO_SEND
@@ -122,6 +120,10 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 					fprintf(stderr, "Message délivré\n");
 #endif
+				} else {
+#ifdef DEBUG
+					fprintf(stderr, "Message non délivré\n");
+#endif
 				}
 				// Format the packet to fit a ACK
 				p.source = getpid();
@@ -129,7 +131,7 @@ int main(int argc, char **argv)
 				p.size = 0;
 #ifdef TEST_NO_ACK
 				//now reply the client with the ack
-				if(test_no_ack%MODULO_TEST_NO_ACK != 0){
+				if (test_no_ack%MODULO_TEST_NO_ACK != 0) {
 #endif
 					if (sendto(s, &p, sizeof(uint64_t)+sizeof(uint32_t)+
 						sizeof(uint32_t)+sizeof(uint8_t), 0, 
@@ -155,12 +157,17 @@ int main(int argc, char **argv)
 					(struct sockaddr*) &si_other, slen) == -1) 
 						bug("canal B RE send : sendto()");
 #ifdef DEBUG
+				fprintf(stderr, "Message non délivré\n");
 				fprintf(stderr, "Message n°%llu RE ack\n", p.numPacket);
 #endif
 			} else { 
 				// NON : le packet n'est pas dans la fenêtre
 				// On ne fait rien, on recevra se message à nouveau plus tard 
 				// quand sa sera le bon moment
+#ifdef DEBUG
+				fprintf(stderr, "Message non délivré\n");
+				fprintf(stderr, "Message n°%llu non ack\n", p.numPacket);
+#endif
 			}
 			// Clear message of the packet
 			memset(p.message,'\0', MAX_BUFLEN);
@@ -259,10 +266,11 @@ int main(int argc, char **argv)
 						}
 					}
 #ifdef DEBUG
-					bug("### Canal A\n");
-					fprintf(stderr, "-----------------------------------\n");
-					fprintf(stderr,"Canal A a reçu : %s \n", message);
-					fprintf(stderr, "-----------------------------------\n");
+					//bug("### Canal A\n");
+					//fprintf(stderr, "-----------------------------------\n");
+					//fprintf(stderr,"Canal A a reçu : %s \n", message);
+					fprintf(stderr,"Canal A reçoit un nouveau message\n");
+					//fprintf(stderr, "-----------------------------------\n");
 #endif
 					if(eof_received == 0){
 						// Filling the packet with some information and the data
@@ -273,7 +281,7 @@ int main(int argc, char **argv)
 						// On mémorise le packet reçu pour l'envoyer plus tard
 						windowTable[iMemorize%WINDOW_SIZE].p = p;
 						// Mise à jour du temps
-						update_timeout(&(windowTable[iMemorize%WINDOW_SIZE]), &currentTime); 
+						update_timeout(&(windowTable[iMemorize%WINDOW_SIZE].timeout), &currentTime); 
 						iMemorize++;
 					}
 				} else if (eof_received == 1) {
@@ -311,7 +319,7 @@ int main(int argc, char **argv)
 				toSendp = &(windowTable[iReSendCpy%WINDOW_SIZE].p);
 
 				// On maj l'heure pour connaitre le nouveau timeout
-				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE]), &currentTime); 
+				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE].timeout), &currentTime); 
 
 				// RE send the message sur le canal
 				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+
@@ -335,7 +343,7 @@ int main(int argc, char **argv)
 				toSendp = &(windowTable[iSend%WINDOW_SIZE].p);
 
 				// On maj le timeout du packet à envoyer
-				update_timeout(&(windowTable[iSend%WINDOW_SIZE]), &currentTime); 
+				update_timeout(&(windowTable[iSend%WINDOW_SIZE].timeout), &currentTime); 
 				iSend++;
 
 				// Send the pakcet on the canal
