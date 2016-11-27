@@ -9,6 +9,7 @@
 //#define DEBUG
 //#define DETECTOR
 
+
 // Thread de réception des ack du canal A
 void* receive_ack(void* arg){
 	WaitAckElement* pTable = (WaitAckElement*)(((ArgAck*)(arg))->windowTable);
@@ -29,11 +30,6 @@ void* receive_ack(void* arg){
 #ifdef DEBUG
 		fprintf(stderr, ">>>> ack n° %llu recu <<<<\n", p.numPacket);
 #endif
-
-#ifdef DETECTOR
-		fprintf(stderr, "DETECTOR ACTIVATED \n");
-		fprintf(stdout, ">>>> ack n° %llu recu <<<<\n", p.numPacket);
-#endif
 		// Enable the ack flag for the packet received
 		pTable[(p.numPacket)%WINDOW_SIZE].p.ack = 1;
 		// get the current value of iReSend
@@ -47,6 +43,12 @@ void* receive_ack(void* arg){
 				// Si cette case était à 1, on la met à zero pour le prochain passage
 				pTable[iReSendCpy%WINDOW_SIZE].p.ack = 0;
 				iReSendCpy++;
+#ifdef DETECTOR
+		fprintf(stdout, "%u\n", iReSendCpy);
+		fflush(stdout);
+		// fprintf(stderr, "%u\n", iReSendCpy);
+		// fflush(stderr);
+#endif
 			}
 			pthread_mutex_lock(&mutex_iReSend); // lock
 			*pReSend = iReSendCpy;

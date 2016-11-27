@@ -12,9 +12,11 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
-#define DEBUG
+// #define DEBUG
 
-//#define DETECTOR
+
+#define DETECTOR
+
 
 // Uncomment to enable the simulation of message lost
 //#define TEST_NO_SEND
@@ -53,8 +55,9 @@ int main(int argc, char **argv)
 
 #ifdef DETECTOR
 		char messageFromD[256];
+		int messageToRead;
 #endif
-		
+
 		// Sockaddr to receive data
 		Sockaddr_in si_me;
 		memset((char *) &si_me, 0, sizeof(si_me));
@@ -110,9 +113,9 @@ int main(int argc, char **argv)
 	#ifdef DEBUG
 					fprintf(stderr, "avant lecture dans proc\n");
 	#endif				
-					if(fgets(messageFromD, 256, stdin) == NULL) bug("Erreur de communication avec D");
+					read(fileno(stdin), messageFromD, 256);
 	#ifdef DEBUG
-					fprintf(stderr, "%s\n", messageFromD);
+					// fprintf(stderr, "Message à envoyer (canal D) : %s\n", messageFromD);
 					fprintf(stderr, "apres lecture dans proc\n");
 	#endif				
 #endif				
