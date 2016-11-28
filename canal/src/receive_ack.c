@@ -21,11 +21,15 @@ void* receive_ack(void* arg){
 	bug("### CANAL de A -- Thread de reception des ack\n");
 #endif
 	while(1){
-		if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint64_t)+sizeof(uint32_t)+
-					sizeof(uint32_t)+sizeof(uint8_t), 0, 
-					(struct sockaddr *) &(((ArgAck*)(arg))->si_other), 
-					&(((ArgAck*)(arg))->slen)) == -1) 
+		if (receive_pkt(((ArgAck*)(arg))->s, &p, 
+				(struct sockaddr*)&(((ArgAck*)(arg))->si_other),
+				&(((ArgAck*)(arg))->slen)) == 0)
 			bug("thread ack recvfrom()");
+
+		
+		//if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint32_t)+sizeof(uint8_t),
+		//			0, (struct sockaddr *) &(((ArgAck*)(arg))->si_other), 
+		//			&(((ArgAck*)(arg))->slen)) == -1) 
 
 		// Enable the ack flag for the packet received
 		pTable[(p.numPacket)%WINDOW_SIZE].p.ack = 1;

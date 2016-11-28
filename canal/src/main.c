@@ -39,9 +39,7 @@ int main(int argc, char **argv)
 	Sockaddr_in si_other;
 	Socket s;
 	//slen to store the length of the address when we receive a packet,
-	unsigned int slen = sizeof(si_other);
-	//recv_len to get the number of char we received
-	unsigned int recv_len;
+	socklen_t slen = sizeof(si_other);
 
 	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) bug("socket");
@@ -73,16 +71,20 @@ int main(int argc, char **argv)
 		if(bind(s, (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) bug("bind not correct");
 
 		// Init the Tab to store messages before delivering them
-		uint64_t Tab[WINDOW_SIZE] = {0};
+		uint32_t Tab[WINDOW_SIZE] = {0};
 		// Important pour que le update sache que le packer zero n'est pas déjà recu
 		Tab[0] = 1;
 
 		// Local vars
 		uint8_t check_in_window ;
+		// Pour recevoir les packets avec la sérialisation
 		Packet p;
+		p.ack = 0;
+		p.numPacket = 0;
+		memset(p.message,'\0', MAX_MES_LEN);
 
 		// This var contains the oldest packet that we are waiting the ack
-		uint64_t oldWaitingAck = 0;
+		uint32_t oldWaitingAck = 0;
 
 #ifdef TEST_NO_ACK
 		uint8_t test_no_ack = 0;
@@ -91,15 +93,19 @@ int main(int argc, char **argv)
 		while(1)
 		{
 			// Receive some data, this is a blocking call
-			if ((recv_len = recvfrom(s, &p, sizeof(p), 0,
-				(struct sockaddr *) &si_other, &slen)) == -1)
-					bug("recvfrom()");
+			// le tableau de char toRec 
+			if (receive_pkt(s, &p, (struct sockaddr*)&si_other, &slen) == 0)
+					bug("Error receive_pkt");
+
+			//if ((recv_len = recvfrom(s, &p, sizeof(p), 0,
+			//	(struct sockaddr *) &si_other, &slen)) == -1)
+			
 
 #ifdef DEBUG 
 			fprintf(stderr, "### CANAL de B ########\n");
-			fprintf(stderr, "L'en tête est : (%u, %"PRIu64", ack=%u, size=%d)\n",
-					p.source, p.numPacket, p.ack, p.size);
-			fprintf(stderr, "oldWaitingAck = %"PRIu64"\n", oldWaitingAck);
+			fprintf(stderr, "L'en tête est : (num=%u, ack=%u)\n",
+					p.numPacket, p.ack);
+			fprintf(stderr, "oldWaitingAck = %u\n", oldWaitingAck);
 			//fprintf(stderr, "Le message reçu : %s\n", p.message);
 #endif
 			// Permet de savoir si on doit délivrer le message
@@ -132,17 +138,15 @@ int main(int argc, char **argv)
 #endif
 				}
 				// Format the packet to fit a ACK
-				p.source = getpid();
 				p.ack = 1;
-				p.size = 0;
+				p.message[0]='\0';
 #ifdef TEST_NO_ACK
 				//now reply the client with the ack
 				if (test_no_ack%MODULO_TEST_NO_ACK != 0) {
 #endif
-					if (sendto(s, &p, sizeof(uint64_t)+sizeof(uint32_t)+
-						sizeof(uint32_t)+sizeof(uint8_t)+7, 0, 
-						(struct sockaddr*) &si_other, slen) == -1) 
-							bug("Error sendto() the ack");
+					if (send_pkt(s, &p, (struct sockaddr*)&si_other, slen) == 0)
+						bug("Error sendto() the ack");
+					
 #ifdef DEBUG
 					fprintf(stderr, "Message n°%llu ack\n", p.numPacket);
 #endif
@@ -153,15 +157,13 @@ int main(int argc, char **argv)
 			} else if (check_in_window == 0) { 
 
 				// Format the packet to fit a ACK
-				p.source = getpid();
 				p.ack = 1;
-				p.size = 0;
+				p.message[0]='\0';
 
 				// NON: Le packet a déjà été reçu, on le re ack
-				if (sendto(s, &p,  sizeof(uint64_t)+sizeof(uint32_t)+
-					sizeof(uint32_t)+sizeof(uint8_t)+7,0, 
-					(struct sockaddr*) &si_other, slen) == -1) 
-						bug("canal B RE send : sendto()");
+				if (send_pkt(s, &p, (struct sockaddr*)&si_other, slen) == 0)
+					bug("canal B RE send : sendto()");
+
 #ifdef DEBUG
 				fprintf(stderr, "Message non délivré\n");
 				fprintf(stderr, "Message n°%llu RE ack\n", p.numPacket);
@@ -176,7 +178,7 @@ int main(int argc, char **argv)
 #endif
 			}
 			// Clear message of the packet
-			memset(p.message,'\0', MAX_BUFLEN);
+			//memset(p.message,'\0', MAX_MES_LEN);
 #ifdef DEBUG
 			fprintf(stderr, "----------------------\n");
 			fflush(stderr);
@@ -230,19 +232,16 @@ int main(int argc, char **argv)
 
 		volatile uint8_t stop=0; 
 
-		char message[MAX_BUFLEN];
+		char message[MAX_MES_LEN];
 		
 		// Initialisation d'un packet vide qui servira de 'contenant' du message
 		Packet p;
-		Packet *toSendp=NULL;
+		Packet *toSendp = NULL;
 		// processus source
-		p.source = getpid();
 		// Number of the message. 
 		p.numPacket = iMemorize;
 		// is ack or not
 		p.ack = 0;
-		// Taille du message à envoyé, pas vraiment utile dans notre implèm
-		p.size=0;
 
 		uint8_t eof_received = 0;
 
@@ -254,7 +253,6 @@ int main(int argc, char **argv)
 			iReSendCpy = iReSend;
 			pthread_mutex_unlock(&mutex_iReSend); // unlock
 
-
 			// Fonction qui test si il y a des choses à lire dans le pipe
 			if (eof_received == 0 && poll(pfd,1,0) < 1) {
 #ifdef DEBUG 
@@ -262,8 +260,8 @@ int main(int argc, char **argv)
 #endif
 			}else{
 				// Si il y a assez de place pour le mémoriser 
-				if((eof_received == 0) && (iMemorize < iReSendCpy+WINDOW_SIZE)){
-					if(fgets(message, MAX_BUFLEN, stdin) == NULL){
+				if((eof_received == 0) && (iMemorize < iReSendCpy + WINDOW_SIZE)){
+					if(fgets(message, MAX_MES_LEN, stdin) == NULL){
 						if(ferror(stdin)) 
 							bug("## CANAL A: Erreur fgets\n");
 						if(feof(stdin)){ 
@@ -280,10 +278,9 @@ int main(int argc, char **argv)
 #endif
 					if(eof_received == 0){
 						// Filling the packet with some information and the data
-						p.size = strlen(message);
 						p.ack = 0;
-						memcpy(p.message, message, (p.size)*sizeof(char));
 						p.numPacket = iMemorize;
+						memcpy(p.message, message, strlen(message));
 						// On mémorise le packet reçu pour l'envoyer plus tard
 						windowTable[iMemorize%WINDOW_SIZE].p = p;
 						// Mise à jour du temps
@@ -330,14 +327,12 @@ int main(int argc, char **argv)
 				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE].timeout), &currentTime); 
 
 				// RE send the message sur le canal
-				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+
-					sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 
-					0, (struct sockaddr *) &si_other, slen)==-1) 
-						bug("sendto()");
+				if (send_pkt(s, toSendp, (struct sockaddr*)&si_other, slen))
+					bug("sendto()");
 #ifdef DEBUG
 				fprintf(stderr,"\n### CANAL A     ##################\n");
-				fprintf(stderr,"RE envoi de : (%u, %"PRIu64", %u)\n", 
-						toSendp->source, toSendp->numPacket, toSendp->ack);
+				fprintf(stderr,"RE envoi de : (%u, %u)\n", toSendp->numPacket, 
+						toSendp->ack);
 				//fprintf(stderr,"Message RE envoyé: %s\n", toSendp->message);
 				fprintf(stderr,"----------------------------------\n");
 				fprintf(stderr,"iReSend = %u\n",iReSendCpy);
@@ -355,14 +350,12 @@ int main(int argc, char **argv)
 				iSend++;
 
 				// Send the pakcet on the canal
-				if (sendto(s, toSendp, sizeof(uint64_t)+sizeof(uint32_t)+
-					sizeof(uint8_t)+sizeof(uint32_t)+sizeof(char)*(toSendp->size)+7, 
-					0, (struct sockaddr *) &si_other, slen)==-1) 
-						bug("sendto()");
+				if (send_pkt(s, toSendp, (struct sockaddr*)&si_other, slen))
+					bug("sendto()");
 #ifdef DEBUG
 				fprintf(stderr,"### CANAL A     ##################\n");
-				fprintf(stderr,"Envoi de : (%u, %"PRIu64", %u)\n", 
-						toSendp->source, toSendp->numPacket, toSendp->ack);
+				fprintf(stderr,"Envoi de : (%u, %u)\n", toSendp->numPacket,
+						toSendp->ack);
 				//fprintf(stderr, "Message envoyé : %s\n", toSendp->message);
 				fprintf(stderr,"----------------------------------\n");
 				fprintf(stderr,"iReSend = %u\n",iReSendCpy);
@@ -372,7 +365,7 @@ int main(int argc, char **argv)
 #endif
 			}
 			//clear the buffer 
-			memset(p.message,'\0', MAX_BUFLEN);
+			memset(p.message,'\0', MAX_MES_LEN);
 
 		}
 		fprintf(stderr,"### CANAL A: TEST FINISHED");
