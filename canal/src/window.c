@@ -21,7 +21,7 @@ void update_timeout(struct timeval *timeout, struct timeval *c)
 }
 
 // check if the packet can be accepted, return 1 if ok
-uint8_t in_window(uint64_t last_number, uint64_t numPacket) {
+uint8_t in_window(uint32_t last_number, uint32_t numPacket) {
 	if (numPacket < (last_number + WINDOW_SIZE)) {
 		if (numPacket >= last_number) {
 			// perfect, in the window
@@ -37,7 +37,7 @@ uint8_t in_window(uint64_t last_number, uint64_t numPacket) {
 }
 
 // ATTENTION: il faut checker si num_packet et dans la window avant !!
-uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab) {
+uint8_t update_Tab(uint32_t* last_number, uint32_t numPacket, uint32_t* Tab) {
 	if (Tab[numPacket%WINDOW_SIZE] == numPacket) {
 		// Le paquet a déjà été reçu. On ne doit pas le délivrer.
 		return 1; 

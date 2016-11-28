@@ -21,8 +21,8 @@ typedef struct {
 } WaitAckElement;
 
 void update_timeout(struct timeval *e, struct timeval *t); 
-uint8_t in_window(uint64_t fastOfUs,uint64_t numPacket);
-uint8_t update_Tab(uint64_t* last_number, uint64_t numPacket, uint64_t* Tab);
+uint8_t in_window(uint32_t fastOfUs,uint32_t numPacket);
+uint8_t update_Tab(uint32_t* last_number, uint32_t numPacket, uint32_t* Tab);
 
 #endif
 
