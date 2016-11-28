@@ -18,7 +18,7 @@
 #include "bug.h"
 #include "perf.h"
 
-#define MAX_RECEIVED_BUFFER 2000
+#define MAX_RECEIVED_BUFFER 1500
 #define OUTPUT_FILE "procTestB/data/receive.txt"
 
 // Décommenter cette ligne pour activer l'affichage de trace dans stderr
