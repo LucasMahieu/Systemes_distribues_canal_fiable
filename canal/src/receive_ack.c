@@ -15,7 +15,6 @@ void* receive_ack(void* arg){
 	WaitAckElement* pTable = (WaitAckElement*)(((ArgAck*)(arg))->windowTable);
 	uint32_t* pReSend = (uint32_t*)(((ArgAck*)(arg))->iReSend);
 	uint32_t iReSendCpy = 0;
-	int i = 0;
 	Packet p;
 #ifdef DEBUG
 	bug("### CANAL de A -- Thread de reception des ack\n");
@@ -36,9 +35,6 @@ void* receive_ack(void* arg){
 
 #ifdef DEBUG
 		fprintf(stderr, ">>>> ack n° %u recu <<<<\n", p.numPacket);
-		// for (i = 0; i < WINDOW_SIZE; i++) {
-		// 	fprintf(stderr, "%d -> %d\n", i, pTable[i].p.ack);
-		// }
 #endif
 		// get the current value of iReSend
 		pthread_mutex_lock(&mutex_iReSend); // lock
