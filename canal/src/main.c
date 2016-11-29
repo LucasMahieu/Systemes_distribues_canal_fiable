@@ -12,7 +12,7 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
- #define DEBUG
+//#define DEBUG
 
 //#define DETECTOR
 
@@ -155,7 +155,6 @@ int main(int argc, char **argv)
 				test_no_ack ++;
 #endif
 			} else if (check_in_window == 0) { 
-
 				// Format the packet to fit a ACK
 				p.ack = 1;
 				p.message[0]='\0';
@@ -169,6 +168,7 @@ int main(int argc, char **argv)
 				fprintf(stderr, "Message n°%u RE ack\n", p.numPacket);
 #endif
 			} else { 
+				bug("chech_in_window = 2\n");
 				// NON : le packet n'est pas dans la fenêtre
 				// On ne fait rien, on recevra se message à nouveau plus tard 
 				// quand sa sera le bon moment
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 
 				// RE send the message sur le canal
 				if (send_pkt(s, toSendp, (struct sockaddr*)&si_other, slen) == 0)
-					bug("sendto()");
+					bug("error sendto() d'un RE envoie");
 #ifdef DEBUG
 				fprintf(stderr,"\n### CANAL A     ##################\n");
 				fprintf(stderr,"RE envoi de : (%u, %u)\n", toSendp->numPacket, 
@@ -351,7 +351,7 @@ int main(int argc, char **argv)
 
 				// Send the pakcet on the canal
 				if (send_pkt(s, toSendp, (struct sockaddr*)&si_other, slen) == 0)
-					bug("sendto()");
+					bug("error sendto() d'un envoie");
 #ifdef DEBUG
 				fprintf(stderr,"\n### CANAL A     ##################\n");
 				fprintf(stderr,"Envoi de : (%u, %u)\n", toSendp->numPacket,

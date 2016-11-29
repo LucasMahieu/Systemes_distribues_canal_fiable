@@ -18,7 +18,7 @@
 #include "bug.h"
 #include "perf.h"
 
-#define MAX_RECEIVED_BUFFER 10010
+#define MAX_RECEIVED_BUFFER 9000
 #define OUTPUT_FILE "procTestB/data/receive.txt"
 
 // Décommenter cette ligne pour activer l'affichage de trace dans stderr
@@ -125,9 +125,7 @@ int main(int argc, char **argv)
 					perf_duration = compute_perf(&perf_start_time, &perf_end_time);
 					fprintf(stderr, "---------------------------------------------\n");
 					fprintf(stderr, "---- Durée test débit = %.4f sec       ----\n", perf_duration);
-					fprintf(stderr, "---- Débit max        =  125.0 MB/s      ----\n");
-					fprintf(stderr, "---- Débit mesuré     = %.3f MB/s       ----\n",25.0/perf_duration);
-					fprintf(stderr, "---- Ratio            = %.3f %%         ----\n",(25.0*100.0)/(perf_duration*125.0));
+					fprintf(stderr, "---- Débit mesuré     = %.3f MB/s       ----\n",(NB_MSG_1KB*LINE_SIZE)/(perf_duration*1000000.0));
 					fprintf(stderr, "---------------------------------------------\n");
 					fflush(stderr);
 					break;

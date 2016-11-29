@@ -57,7 +57,7 @@ char *deserialize_ack(char *buffer, uint8_t *ack)
 
 char *serialize_message(char *buffer, char *message)
 {
-	strncpy(buffer, message, MAX_MES_LEN-1);
+	strncpy(buffer, message, MAX_MES_LEN);
 	return buffer + strnlen(message, MAX_MES_LEN);
 }
 char *deserialize_message(char *buffer,char *message)
@@ -71,7 +71,11 @@ uint8_t send_pkt(Socket s, Packet *p, struct sockaddr *dest, socklen_t slen)
 	char buf[MAX_PKT_LEN];
 	char *ptr = NULL;
 	ptr = serialize_packet(buf, p);
-	return (sendto(s, buf, ptr - buf, 0, dest, slen) == ptr - buf); 
+	int ret = sendto(s, buf, ptr - buf, 0, dest, slen);
+	//fprintf(stderr, "SEND_PKT : ret:%d, ptr:%p - buf:%p = %lu\n" ,ret, ptr,buf,ptr-buf);
+	if (ret == ptr - buf)
+	   return 1;
+	return 0;
 }
 
 uint8_t receive_pkt(Socket s, Packet *p, struct sockaddr *dest, socklen_t *slen)

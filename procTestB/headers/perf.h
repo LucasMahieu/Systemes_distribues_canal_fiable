@@ -11,7 +11,7 @@
 #include <sys/types.h> 
 
 #define NB_MSG_1KB 25000
-#define LINE_SIZE 1010
+#define LINE_SIZE 9000
 
 double compute_perf(struct timeval *start, struct timeval *end);
 

@@ -7,6 +7,7 @@
 
 #include "window.h"
 #include <sys/time.h>
+#include "bug.h"
 
 void update_timeout(struct timeval *timeout, struct timeval *c)
 {

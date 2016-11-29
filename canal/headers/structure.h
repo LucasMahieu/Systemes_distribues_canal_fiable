@@ -14,7 +14,7 @@
 #define PORT 8888   		//The port on which to listen for incoming data
 
 //Max length of buffer (for messages)
-#define MAX_MES_LEN 1500
+#define MAX_MES_LEN 9000
 #define MAX_PKT_LEN (MAX_MES_LEN+sizeof(uint32_t)+sizeof(uint8_t))
 
 typedef struct sockaddr_in Sockaddr_in;
