@@ -27,6 +27,10 @@ all: $(PROG0) $(PROG1) $(PROG2) $(PROG3) $(PROG4)
 	@(cp $(PROG3) ./)
 	@(cp $(PROG4) ./)
 
+exe:
+	make exeA &
+	make exeB
+
 exeA: $(PROG0)
 	nice -n 200 ./myProcTestA -d
 	

@@ -105,7 +105,9 @@ int main(int argc, char **argv)
 
 		fprintf(stderr, "--------------------------------------------------\n");
 		fprintf(stderr, "Le processus B est en marche\n");
-		fprintf(stderr, "Écriture des messages reçus  dans %s\n", OUTPUT_FILE);
+		if (perf_debit == 0 || perf_latence == 0) {
+			fprintf(stderr, "Écriture des messages reçus  dans %s\n", OUTPUT_FILE);
+		}
 		fprintf(stderr, "Pressez Ctrl+C pour quitter\n");
 		fprintf(stderr, "--------------------------------------------------\n");
 
@@ -114,7 +116,7 @@ int main(int argc, char **argv)
 #endif
 		while(1){
 			if (perf_debit == 1) {
-				if (cpt_msg < NB_MSG_1KB) {
+				if (cpt_msg < NB_MSG_1KB - 1) {
 					// le canal va faire un déliver et on recoie les données avec read
 					read(tube_CanaltoB[0], receiveBuffer, LINE_SIZE);
 					if (cpt_msg == 0) {
@@ -131,17 +133,16 @@ int main(int argc, char **argv)
 					break;
 				}
 				cpt_msg ++;
-				//fprintf(stderr, "%d message délivré\n", cpt_msg);
 			} else { 
 				// le canal va faire un déliver et on recoie les données avec read
 				read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
 			}
 #ifdef DEBUG
-			// fprintf(stderr, "#### B à reçu : %s",receiveBuffer);
-			// fprintf(stderr, "-------------------------------------------\n");
-			// fflush(stderr);
+			fprintf(stderr, "#### B à reçu : %s",receiveBuffer);
+			fprintf(stderr, "-------------------------------------------\n");
+			fflush(stderr);
 #endif
-			if (perf_debit == 0) {
+			if (perf_debit == 0 || perf_latence == 0) {
 				fwrite(receiveBuffer, sizeof(*receiveBuffer), 
 						strlen(receiveBuffer), fOUT);
 				fflush(fOUT);

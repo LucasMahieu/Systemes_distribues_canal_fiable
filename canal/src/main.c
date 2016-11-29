@@ -168,7 +168,6 @@ int main(int argc, char **argv)
 				fprintf(stderr, "Message n°%u RE ack\n", p.numPacket);
 #endif
 			} else { 
-				bug("chech_in_window = 2\n");
 				// NON : le packet n'est pas dans la fenêtre
 				// On ne fait rien, on recevra se message à nouveau plus tard 
 				// quand sa sera le bon moment
