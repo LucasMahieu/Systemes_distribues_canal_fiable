@@ -6,7 +6,7 @@
 #include "receive_ack.h"
 #include "structure.h"
 
-// #define DEBUG
+#define DEBUG
 //#define DETECTOR
 
 
@@ -35,7 +35,7 @@ void* receive_ack(void* arg){
 		pTable[(p.numPacket)%WINDOW_SIZE].p.ack = 1;
 
 #ifdef DEBUG
-		fprintf(stderr, ">>>> ack n° %llu recu <<<<\n", p.numPacket);
+		fprintf(stderr, ">>>> ack n° %u recu <<<<\n", p.numPacket);
 		// for (i = 0; i < WINDOW_SIZE; i++) {
 		// 	fprintf(stderr, "%d -> %d\n", i, pTable[i].p.ack);
 		// }

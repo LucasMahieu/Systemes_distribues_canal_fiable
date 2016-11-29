@@ -12,7 +12,7 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
-// #define DEBUG
+ #define DEBUG
 
 //#define DETECTOR
 
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 	Sockaddr_in si_other;
 	Socket s;
 	//slen to store the length of the address when we receive a packet,
-	socklen_t slen = sizeof(si_other);
+	unsigned int slen = sizeof(si_other);
 
 	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) bug("socket");
@@ -59,7 +59,6 @@ int main(int argc, char **argv)
 		char messageFromD[256];
 		int messageToRead;
 #endif
-
 		// Sockaddr to receive data
 		Sockaddr_in si_me;
 		memset((char *) &si_me, 0, sizeof(si_me));
@@ -68,7 +67,8 @@ int main(int argc, char **argv)
 		si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
 		//bind socket to port
-		if(bind(s, (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) bug("bind not correct");
+		if (bind(s, (struct sockaddr*)&si_me, sizeof(si_me) ) == -1) 
+			bug("bind not correct");
 
 		// Init the Tab to store messages before delivering them
 		uint32_t Tab[WINDOW_SIZE] = {0};
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 						bug("Error sendto() the ack");
 					
 #ifdef DEBUG
-					fprintf(stderr, "Message n°%llu ack\n", p.numPacket);
+					fprintf(stderr, "Message n°%u ack\n", p.numPacket);
 #endif
 #ifdef TEST_NO_ACK
 				}
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 
 #ifdef DEBUG
 				fprintf(stderr, "Message non délivré\n");
-				fprintf(stderr, "Message n°%llu RE ack\n", p.numPacket);
+				fprintf(stderr, "Message n°%u RE ack\n", p.numPacket);
 #endif
 			} else { 
 				// NON : le packet n'est pas dans la fenêtre
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 				// quand sa sera le bon moment
 #ifdef DEBUG
 				fprintf(stderr, "Message non délivré\n");
-				fprintf(stderr, "Message n°%llu non ack\n", p.numPacket);
+				fprintf(stderr, "Message n°%u non ack\n", p.numPacket);
 #endif
 			}
 			// Clear message of the packet
@@ -327,7 +327,7 @@ int main(int argc, char **argv)
 				update_timeout(&(windowTable[iReSendCpy%WINDOW_SIZE].timeout), &currentTime); 
 
 				// RE send the message sur le canal
-				if (send_pkt(s, toSendp, (struct sockaddr*)&si_other, slen))
+				if (send_pkt(s, toSendp, (struct sockaddr*)&si_other, slen) == 0)
 					bug("sendto()");
 #ifdef DEBUG
 				fprintf(stderr,"\n### CANAL A     ##################\n");
@@ -350,10 +350,10 @@ int main(int argc, char **argv)
 				iSend++;
 
 				// Send the pakcet on the canal
-				if (send_pkt(s, toSendp, (struct sockaddr*)&si_other, slen))
+				if (send_pkt(s, toSendp, (struct sockaddr*)&si_other, slen) == 0)
 					bug("sendto()");
 #ifdef DEBUG
-				fprintf(stderr,"### CANAL A     ##################\n");
+				fprintf(stderr,"\n### CANAL A     ##################\n");
 				fprintf(stderr,"Envoi de : (%u, %u)\n", toSendp->numPacket,
 						toSendp->ack);
 				//fprintf(stderr, "Message envoyé : %s\n", toSendp->message);

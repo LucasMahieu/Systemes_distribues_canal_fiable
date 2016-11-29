@@ -10,8 +10,8 @@
 #include <sys/time.h>
 #include <sys/types.h> 
 
-#define NB_MSG_1KB 250000
-#define LINE_SIZE 1024
+#define NB_MSG_1KB 25000
+#define LINE_SIZE 1010
 
 double compute_perf(struct timeval *start, struct timeval *end);
 

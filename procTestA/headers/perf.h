@@ -10,7 +10,7 @@
 #include <sys/time.h>
 #include <sys/types.h> 
 
-#define NB_MSG_1KB 250000
+#define NB_MSG_1KB 25000
 
 #endif
 

@@ -6,6 +6,7 @@
 
 #include "structure.h"
 #include <arpa/inet.h>
+#include <stdio.h>
 #include "bug.h"
 
 /**
@@ -37,7 +38,9 @@ char *serialize_uint32(char *buffer, uint32_t value)
 }
 char *deserialize_uint32(char *buffer, uint32_t *value)
 {
-	*value = ntohl(buffer[0]);
+	uint32_t value_host_endien;;
+	memcpy(&value_host_endien, buffer, sizeof(uint32_t)); 
+	*value = ntohl(value_host_endien);
 	return buffer + sizeof(uint32_t);
 }
 
@@ -66,14 +69,15 @@ char *deserialize_message(char *buffer,char *message)
 uint8_t send_pkt(Socket s, Packet *p, struct sockaddr *dest, socklen_t slen)
 {
 	char buf[MAX_PKT_LEN];
-	char *ptr = serialize_packet(buf, p);
-	return (sendto(s, buf, ptr - buf, 0, (struct sockaddr*)&dest, slen) == ptr - buf); 
+	char *ptr = NULL;
+	ptr = serialize_packet(buf, p);
+	return (sendto(s, buf, ptr - buf, 0, dest, slen) == ptr - buf); 
 }
 
-uint8_t receive_pkt(Socket s, Packet *p, struct sockaddr *si_other, socklen_t *slen)
+uint8_t receive_pkt(Socket s, Packet *p, struct sockaddr *dest, socklen_t *slen)
 {
 	char toRec[MAX_PKT_LEN];
-	if (recvfrom(s, toRec, MAX_PKT_LEN, 0, si_other, slen) == -1) {
+	if (recvfrom(s, toRec, MAX_PKT_LEN, 0, dest, slen) == -1) {
 		bug("recvfrom()");
 		return 0;
 	} 
