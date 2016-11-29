@@ -53,9 +53,11 @@ int main(int argc, char **argv)
 	int tube_CanaltoA[2];
 
 	/* pipe 1*/
-	if (pipe(tube_AtoCanal) != 0) bug("Erreur dans pipe 1 \n");
+	if (pipe(tube_AtoCanal) != 0) 
+		bug("Erreur dans pipe 1 \n");
 	/* pipe 2*/
-	if (pipe(tube_CanaltoA) != 0) bug("Erreur dans pipe 2 \n");
+	if (pipe(tube_CanaltoA) != 0) 
+		bug("Erreur dans pipe 2 \n");
 
 	canal_pid = fork();    
 	if (canal_pid == -1)
@@ -99,10 +101,12 @@ int main(int argc, char **argv)
 		toSendBuffer[i] = '\0';
 		
 		FILE* fIN;
-		if((fIN = fopen(INPUT_FILE,"r"))==NULL) bug("Erreur dans fopen fIN\n");
+		if ((fIN = fopen(INPUT_FILE,"r")) == NULL)
+			bug("Erreur dans fopen fIN\n");
 
 		FILE* fOUT;
-		if((fOUT=fdopen(tube_AtoCanal[1],"w"))==NULL) bug("Erreur fOUT prog A");
+		if ((fOUT=fdopen(tube_AtoCanal[1],"w")) == NULL)
+			bug("Erreur fOUT prog A");
 
 		volatile uint8_t stop=0;
 		
@@ -113,17 +117,16 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 		fprintf(stderr, "### Proc A: pid= %d\n", getpid());
 #endif
-		int cpt = 0;
+		uint32_t cpt_msg = 0;
 		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
 		sleep(1);
 		while (!stop) {
 			if (perf_debit == 1) { 
-				if (cpt > NB_MSG_1KB){
+				if (cpt_msg > NB_MSG_1KB){
 					// Le test de perf est fini
 					stop = 1;
 					continue;
 				}
-				cpt++;
 			} else {
 				// Lecture d'une ligne du fichier de test
 				if (fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN) == NULL) {
@@ -134,16 +137,17 @@ int main(int argc, char **argv)
 			}
 #ifdef DEBUG
 			// bug("### Proc A\n");
-			// fprintf(stderr, "---------------------------------------------\n");
+			// fprintf(stderr, "------------------------------------------\n");
 			// fprintf(stderr,"A envoie: %s ", toSendBuffer);
-			// fprintf(stderr, "---------------------------------------------\n");
+			// fprintf(stderr, "-----------------------------------------\n");
 			// fflush(stderr);
 #endif
 			// fonction que doit appeler A pour envoyer des données à B 
 			// par le canal
 			fwrite(toSendBuffer, sizeof(char), strlen(toSendBuffer), fOUT);
+			cpt_msg++;
 
-			if (perf_debit == 0) {
+			if (perf_debit == 0 && perf_latence == 0) {
 				memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
 			}
 		}
