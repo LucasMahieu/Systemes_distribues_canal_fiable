@@ -1,4 +1,5 @@
 # Canal Fiable entre 2 processus
+ATTENTION : SEULE LA BRANCHE 'backup' EST A JOUR ET FONCTIONNELLE
 
 ## Compilation
 La compilation peu se faire à 2 niveaux
