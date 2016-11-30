@@ -12,7 +12,7 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
-#define DEBUG
+//#define DEBUG
 
 // Uncomment to enable the simulation of message lost
 //#define TEST_NO_SEND
@@ -128,10 +128,8 @@ int main(int argc, char **argv)
 					deliver(p.message);
 
 					if (fault_detector == 1) {
-						fprintf(stderr, "detector = %d\n",fault_detector);
 						// Appel bloquant en cas de crash de D
 						read(fileno(stdin), messageFromD, 256);
-						fprintf(stderr, "toto\n");
 					}
 
 #ifdef DEBUG

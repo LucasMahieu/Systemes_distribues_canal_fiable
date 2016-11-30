@@ -26,11 +26,11 @@
 // Pour sig kill
 #include <signal.h>
 
-#define TimeToWait 3
+#define TimeToWait 2
 #define MAX_TOSEND_BUFFER 8000
 #define INPUT_FILE "procTestA/data/toSend_2.txt"
 //time in seconds
-#define NB_TOUR 2
+#define NB_TOUR 1
 // #define DEBUG
 
 void bug(char* msg){

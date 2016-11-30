@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 		int cpt_life = 10;
 		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
 		sleep(1);
-		while(1){
+		while(cpt_life > 0){
 			// le canal va faire un déliver et on recoit les données avec read
 			memset(receiveBuffer,'\0', MAX_RECEIVED_BUFFER);
 			read(tube_CanaltoD[0], receiveBuffer, MAX_RECEIVED_BUFFER);
@@ -99,8 +99,7 @@ int main(int argc, char **argv)
 			fprintf(stderr, "\n");
 			fprintf(stdout, "%s\n", message);
 			fflush(stdout);
-			fprintf(stderr, "%s pas bon\n", message);
-			//cpt_life --;
+			cpt_life --;
 			
 		}
 		close(tube_DtoCanal[1]);

@@ -23,8 +23,6 @@ void* receive_ack(void* arg)
 	fprintf(stderr, "detector = %u\n",detector);
 #endif
 	while(1){
-	fprintf(stderr, "detector = %u\n",detector);
-
 		if (receive_pkt(((ArgAck*)(arg))->s, &p, 
 				(struct sockaddr*)&(((ArgAck*)(arg))->si_other),
 				&(((ArgAck*)(arg))->slen)) == 0)
