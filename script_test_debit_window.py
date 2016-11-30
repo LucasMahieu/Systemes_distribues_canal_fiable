@@ -17,8 +17,8 @@ moyenne = 5
 detect_line = "#define WINDOW_SIZE"
 # Values for the window
 from_value = 1
-to_value = 10000
-jump = 10
+to_value = 2001
+jump = 50
 
 
 

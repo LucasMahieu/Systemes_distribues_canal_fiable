@@ -83,7 +83,6 @@ int main(int argc, char **argv)
 		fprintf(stderr,"### PROC D: pid: %d)\n\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
-		int i=0;
 		sleep(1);
 		while(1){
 			// le canal va faire un déliver et on recoit les données avec read
