@@ -12,9 +12,7 @@
 #include "bug.h"
 
 // Uncomment to enable debug traces
-//#define DEBUG
-
-// #define DETECTOR
+#define DEBUG
 
 // Uncomment to enable the simulation of message lost
 //#define TEST_NO_SEND
@@ -48,6 +46,17 @@ int main(int argc, char **argv)
 		printf("Enter the number of the canal: 0 for server, 1 pour client\n");
 		return -1;
 	}
+	// Flag d'actovation du mode détecteur de faute
+	uint8_t fault_detector = 0;
+	if (argc > 2) {
+		if (!strcmp(argv[2], "-f")) {
+			fault_detector = 1;
+			fprintf(stderr, "-------------------------------------\n");
+			fprintf(stderr, "--         CANAL FIABLE            --\n");
+			fprintf(stderr, "-- Mode détecteur de fautes activé --\n");
+			fprintf(stderr, "-------------------------------------\n");
+		}
+	}
 	
 	/** 
 	 * Coté server du canal
@@ -55,10 +64,8 @@ int main(int argc, char **argv)
 	 */
 	if(!strcmp(argv[1],"0")){
 
-#ifdef DETECTOR
 		char messageFromD[256];
-		int messageToRead;
-#endif
+		//
 		// Sockaddr to receive data
 		Sockaddr_in si_me;
 		memset((char *) &si_me, 0, sizeof(si_me));
@@ -119,16 +126,14 @@ int main(int argc, char **argv)
 
 					// Fonction DELIVER a B
 					deliver(p.message);
-#ifdef DETECTOR
-	#ifdef DEBUG
-					fprintf(stderr, "avant lecture dans proc\n");
-	#endif				
-					read(fileno(stdin), messageFromD, 256);
-	#ifdef DEBUG
-					// fprintf(stderr, "Message à envoyer (canal D) : %s\n", messageFromD);
-					fprintf(stderr, "apres lecture dans proc\n");
-	#endif				
-#endif				
+
+					if (fault_detector == 1) {
+						fprintf(stderr, "detector = %d\n",fault_detector);
+						// Appel bloquant en cas de crash de D
+						read(fileno(stdin), messageFromD, 256);
+						fprintf(stderr, "toto\n");
+					}
+
 #ifdef DEBUG
 					fprintf(stderr, "Message délivré\n");
 #endif
@@ -221,6 +226,7 @@ int main(int argc, char **argv)
 		arg_thread.si_other = si_other;
 		arg_thread.slen = slen;
 		arg_thread.s = s;
+		arg_thread.fault_detector = fault_detector;
 		if (pthread_create(&receive_thread, NULL, receive_ack, (void*)&arg_thread)) 
 			bug("pthread create failure: ");
 		

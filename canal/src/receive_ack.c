@@ -7,28 +7,28 @@
 #include "structure.h"
 
 //#define DEBUG
-// #define DETECTOR
-
 
 // Thread de réception des ack du canal A
-void* receive_ack(void* arg){
+void* receive_ack(void* arg)
+{
+
 	WaitAckElement* pTable = (WaitAckElement*)(((ArgAck*)(arg))->windowTable);
 	uint32_t* pReSend = (uint32_t*)(((ArgAck*)(arg))->iReSend);
 	uint32_t iReSendCpy = 0;
 	Packet p;
+	uint8_t detector = (uint8_t)(((ArgAck*)arg)->fault_detector);
+
 #ifdef DEBUG
-	bug("### CANAL de A -- Thread de reception des ack\n");
+	bug("### CANAL de A/C -- Thread de reception des ack\n");
+	fprintf(stderr, "detector = %u\n",detector);
 #endif
 	while(1){
+	fprintf(stderr, "detector = %u\n",detector);
+
 		if (receive_pkt(((ArgAck*)(arg))->s, &p, 
 				(struct sockaddr*)&(((ArgAck*)(arg))->si_other),
 				&(((ArgAck*)(arg))->slen)) == 0)
 			bug("thread ack recvfrom()");
-
-		
-		//if (recvfrom(((ArgAck*)(arg))->s, &p, sizeof(uint32_t)+sizeof(uint8_t),
-		//			0, (struct sockaddr *) &(((ArgAck*)(arg))->si_other), 
-		//			&(((ArgAck*)(arg))->slen)) == -1) 
 
 		// Enable the ack flag for the packet received
 		pTable[(p.numPacket)%WINDOW_SIZE].p.ack = 1;
@@ -47,16 +47,14 @@ void* receive_ack(void* arg){
 				// Si cette case était à 1, on la met à zero pour le prochain passage
 				pTable[iReSendCpy%WINDOW_SIZE].p.ack = 0;
 				iReSendCpy++;
-#ifdef DETECTOR
-		fprintf(stdout, "%u\n", iReSendCpy);
-		fflush(stdout);
-		// fprintf(stderr, "%u\n", iReSendCpy);
-		// fflush(stderr);
-#endif
+				if (detector == 1) {
+					fprintf(stdout, "%u\n", iReSendCpy);
+					fflush(stdout);
+				}
 			}
 #ifdef DEBUG
-		// fprintf(stderr, "iReSend %d >>devient>> %d (+%d)\n", 
-		// 		p.numPacket, iReSendCpy, iReSendCpy - p.numPacket);
+			fprintf(stderr, "iReSend %d >>devient>> %d (+%d)\n", 
+					p.numPacket, iReSendCpy, iReSendCpy - p.numPacket);
 #endif
 			pthread_mutex_lock(&mutex_iReSend); // lock
 			*pReSend = iReSendCpy;

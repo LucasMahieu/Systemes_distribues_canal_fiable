@@ -26,11 +26,11 @@
 // Pour sig kill
 #include <signal.h>
 
-#define TimeToWait 6
+#define TimeToWait 3
 #define MAX_TOSEND_BUFFER 8000
 #define INPUT_FILE "procTestA/data/toSend_2.txt"
 //time in seconds
-#define NB_TOUR 1
+#define NB_TOUR 2
 // #define DEBUG
 
 void bug(char* msg){
@@ -40,7 +40,6 @@ void bug(char* msg){
 
 int main(int argc, char **argv)
 {
-
 	pid_t canal_pid;
 	// Tube de communication entre les 2 processus
 	// Il faut deux tube pour communiquer dans les 2 sens
@@ -66,7 +65,6 @@ int main(int argc, char **argv)
 		close(tube_CtoCanal[1]);
 		close(tube_CanaltoC[0]);
 
-
 		// sleep(3);
 		// fprintf(stdout, "salut\n");
 		// sleep(2);
@@ -79,7 +77,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Fermeture de la sortie du tube Canal to A dans le proc fils (pid = %d)\n", getpid());
 #endif
 		// liste qui servira au execvp
-		char* arg_list[] = {"./myCanal", "1", NULL};
+		char* arg_list[] = {"./myCanal", "1", "-f", NULL};
 		// On lance le myCanal
 		execv("myCanal", arg_list);
 		
@@ -113,9 +111,6 @@ int main(int argc, char **argv)
 		struct pollfd pfd[1];
 		pfd[0].fd = fileno(stdin);
 		pfd[0].events = POLLIN | POLLPRI;
-
-
-
 #ifdef DEBUG
 		fprintf(stderr, "### Proc C: pid= %d\n", getpid());
 #endif
@@ -123,7 +118,6 @@ int main(int argc, char **argv)
 		// Petit dodo pour être sur que tout le monde soit bien près pour le test
 		sleep(1);
 		while(1){
-
 #ifdef DEBUG
 			gettimeofday(&timeToPrint, NULL);
 			bug("### Proc C\n");
@@ -134,10 +128,8 @@ int main(int argc, char **argv)
 #endif
 			cpt++;
 			// fonction que doit appeler C pour envoyer des données à D par le canal (simple printf dans stdout)
-			sleep(TimeToWait);
 			fprintf(stdout, "%s\n", sendBuffer);
-
-			
+			sleep(TimeToWait);
 
 			// fprintf(stderr, "Ca va lire\n");
 			// if(fgets(sendBuffer, 20, stdin) == NULL) bug("Erreur de communication avec D");
