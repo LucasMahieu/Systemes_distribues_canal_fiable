@@ -18,7 +18,7 @@
 #include <poll.h>
 
 
-#define MAX_RECEIVED_BUFFER 256
+#define MAX_RECEIVED_BUFFER 8000
 
 // #define DEBUG
 
@@ -83,6 +83,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"### PROC D: pid: %d)\n\n", getpid());
 #endif
 		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
+		int i=0;
 		sleep(1);
 		while(1){
 			// le canal va faire un déliver et on recoit les données avec read
@@ -98,11 +99,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "-----------------------------------------------------------------------------\n");
 #endif
 			
-			// if (!strcmp(receiveBuffer, "Are you alive?\n")){
-				fprintf(stderr, "On fait un signe de vie\n");
-				fprintf(stderr, "\n");
-				fprintf(stdout, "%s\n", message);
-			// }
+			fprintf(stderr, "On fait un signe de vie\n");
+			fprintf(stderr, "\n");
+			fprintf(stdout, "%s\n", message);
 			
 		}
 		close(tube_DtoCanal[1]);

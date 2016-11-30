@@ -11,14 +11,14 @@ subprocess.call("touch " + logFile, shell=True)
 
 
 # nombre de valeurs pour faire la moyenne
-moyenne = 2
+moyenne = 5
 
 #detecter la ligne a changer
 detect_line = "#define WINDOW_SIZE"
 # Values for the window
 from_value = 1
-to_value = 5000
-jump = 2000
+to_value = 10000
+jump = 10
 
 
 
@@ -32,7 +32,7 @@ Y = list()
 #time to wait between to tests
 TTW1 = 1
 #time to wait for the test to finish
-TTW2 = 5
+TTW2 = 3
 
 
 for i in range(from_value, to_value+1, jump):
@@ -58,8 +58,8 @@ for i in range(from_value, to_value+1, jump):
     subprocess.call("make", shell=True)
     for j in range(moyenne):
         subprocess.call("echo \"\ntaille de fenetre, iteration = " + str(i) + ", " + str(j) + "\" >> " + logFile, shell=True)
-        procA = subprocess.Popen("make exeA", shell=True, close_fds=True)
-        procB = subprocess.Popen("make exeB 2>> " + logFile, shell=True, close_fds=True)
+        procA = subprocess.Popen("make Ad", shell=True, close_fds=True)
+        procB = subprocess.Popen("make Bd 2>> " + logFile, shell=True, close_fds=True)
         subprocess.call("sleep " + str(TTW2), shell=True)
         # subprocess.call(["kill", "-9", "%d" % procA.pid])
         # subprocess.call(["kill", "-9", "%d" % procB.pid])

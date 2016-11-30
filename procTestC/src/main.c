@@ -26,11 +26,11 @@
 // Pour sig kill
 #include <signal.h>
 
-#define TimeToWait 2
-#define BUFFER_SIZE 256
+#define TimeToWait 6
+#define MAX_TOSEND_BUFFER 8000
 #define INPUT_FILE "procTestA/data/toSend_2.txt"
 //time in seconds
-#define NB_TOUR 2
+#define NB_TOUR 1
 // #define DEBUG
 
 void bug(char* msg){
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 
 		int messageToRead = 0;
 		int cpt = 0;
-		char sendBuffer[BUFFER_SIZE];
+		char sendBuffer[MAX_TOSEND_BUFFER];
 		memcpy(sendBuffer, "Are you alive?", strlen("Are you alive?"));
 
 
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 			messageToRead = poll(pfd,1,0);
 			if (messageToRead>0) {
 				cpt=0;
-				read(fileno(stdin), sendBuffer, BUFFER_SIZE);
+				read(fileno(stdin), sendBuffer, MAX_TOSEND_BUFFER);
 				bug("### Proc C\n");
 				fprintf(stderr, "-----------------------------------------------------------------------------\n");
 				fprintf(stderr, "D est en vie\n");

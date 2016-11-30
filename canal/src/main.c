@@ -14,7 +14,7 @@
 // Uncomment to enable debug traces
 //#define DEBUG
 
-//#define DETECTOR
+// #define DETECTOR
 
 // Uncomment to enable the simulation of message lost
 //#define TEST_NO_SEND
