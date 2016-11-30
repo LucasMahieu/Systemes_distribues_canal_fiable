@@ -35,9 +35,6 @@ void* receive_ack(void* arg){
 
 #ifdef DEBUG
 		fprintf(stderr, ">>>> ack n° %u recu <<<<\n", p.numPacket);
-		// for (i = 0; i < WINDOW_SIZE; i++) {
-		// 	fprintf(stderr, "%d -> %d\n", i, pTable[i].p.ack);
-		// }
 #endif
 		// get the current value of iReSend
 		pthread_mutex_lock(&mutex_iReSend); // lock

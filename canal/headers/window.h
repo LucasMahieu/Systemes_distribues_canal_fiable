@@ -11,9 +11,9 @@
 #include <structure.h>
 
 // time to wait before to resend the packet in us
-#define TIMEOUT_WAIT_ACK   10000
+#define TIMEOUT_WAIT_ACK 6000
 #define MAX_TV_USEC       999999
-#define WINDOW_SIZE 1000
+#define WINDOW_SIZE 4001
 
 typedef struct {
 	Packet p;
