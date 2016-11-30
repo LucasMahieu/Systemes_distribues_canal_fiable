@@ -134,8 +134,8 @@ int main(int argc, char **argv)
 #endif
 			cpt++;
 			// fonction que doit appeler C pour envoyer des données à D par le canal (simple printf dans stdout)
-			sleep(TimeToWait);
 			fprintf(stdout, "%s\n", sendBuffer);
+			sleep(TimeToWait);
 
 			
 
