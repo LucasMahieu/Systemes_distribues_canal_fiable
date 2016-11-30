@@ -17,7 +17,7 @@
 #include "bug.h"
 #include "perf.h"
 
-#define MAX_TOSEND_BUFFER 9000
+#define MAX_TOSEND_BUFFER 8000
 
 #define INPUT_FILE "procTestA/data/toSend.txt"
 
@@ -99,7 +99,17 @@ int main(int argc, char **argv)
 		toSendBuffer[i] = '\n';
 		i++;
 		toSendBuffer[i] = '\0';
-		
+		// Pour le test en latence
+		struct timeval send_date;
+		char dummy_buffer[MAX_TOSEND_BUFFER-20];
+		for(i = 0; i < MAX_TOSEND_BUFFER - 7 - 20; i++) {
+			dummy_buffer[i] = 'a';
+		}
+		dummy_buffer[i] = '\n';
+		i++;
+		dummy_buffer[i] = '\0';
+
+
 		FILE* fIN;
 		if ((fIN = fopen(INPUT_FILE,"r")) == NULL)
 			bug("Erreur dans fopen fIN\n");
@@ -121,16 +131,26 @@ int main(int argc, char **argv)
 		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
 		sleep(1);
 		while (!stop) {
-			if (perf_debit == 1) { 
-				if (cpt_msg > NB_MSG_1KB){
+			if (perf_debit == 0 && perf_latence == 0) {
+				// Lecture d'une ligne du fichier de test
+				if (fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN) == NULL) {
+					bug("## PROC A : No more data, EOF read\n");
+					stop = 1;
+					continue;
+				}
+			} else if (perf_debit == 1) {
+				if (cpt_msg >= NB_MSG_KB){
 					// Le test de perf est fini
 					stop = 1;
 					continue;
 				}
-			} else {
-				// Lecture d'une ligne du fichier de test
-				if (fgets(toSendBuffer, MAX_TOSEND_BUFFER, fIN) == NULL) {
-					bug("## PROC A : No more data, EOF read\n");
+			} else if (perf_latence == 1) {
+				if (cpt_msg < NB_MSG_LATENCE){
+					gettimeofday(&send_date, NULL);
+					sprintf(toSendBuffer, "%.10ld,%06u,%s",send_date.tv_sec,
+							send_date.tv_usec, dummy_buffer);
+				} else {
+					// Le test de perf est fini
 					stop = 1;
 					continue;
 				}
@@ -144,10 +164,13 @@ int main(int argc, char **argv)
 #endif
 			// fonction que doit appeler A pour envoyer des données à B 
 			// par le canal
-			fwrite(toSendBuffer, sizeof(char), strlen(toSendBuffer), fOUT);
+			if (fwrite(toSendBuffer, sizeof(char), strlen(toSendBuffer), fOUT) 
+					!= strlen(toSendBuffer) )
+					bug("Proc A : fWrite error\n");
+				
 			cpt_msg++;
 
-			if (perf_debit == 0 && perf_latence == 0) {
+			if (perf_debit == 0) {
 				memset(toSendBuffer,'\0', MAX_TOSEND_BUFFER);
 			}
 		}

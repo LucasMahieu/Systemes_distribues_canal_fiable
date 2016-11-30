@@ -31,10 +31,22 @@ exe:
 	make exeA &
 	make exeB
 
-exeA: $(PROG0)
+A: $(PROG0)
+	nice -n 200 ./myProcTestA
+	
+B: $(PROG1)
+	nice -n 200 ./myProcTestB
+
+Al: $(PROG0)
+	nice -n 200 ./myProcTestA -l
+	
+Bl: $(PROG1)
+	nice -n 200 ./myProcTestB -l
+
+Ad: $(PROG0)
 	nice -n 200 ./myProcTestA -d
 	
-exeB: $(PROG1)
+Bd: $(PROG1)
 	nice -n 200 ./myProcTestB -d
 
 exeMyCanal: $(PROG2)

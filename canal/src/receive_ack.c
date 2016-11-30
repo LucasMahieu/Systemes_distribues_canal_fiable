@@ -15,7 +15,6 @@ void* receive_ack(void* arg){
 	WaitAckElement* pTable = (WaitAckElement*)(((ArgAck*)(arg))->windowTable);
 	uint32_t* pReSend = (uint32_t*)(((ArgAck*)(arg))->iReSend);
 	uint32_t iReSendCpy = 0;
-	int i = 0;
 	Packet p;
 #ifdef DEBUG
 	bug("### CANAL de A -- Thread de reception des ack\n");

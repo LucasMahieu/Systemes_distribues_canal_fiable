@@ -14,11 +14,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <inttypes.h>
 
 #include "bug.h"
 #include "perf.h"
 
-#define MAX_RECEIVED_BUFFER 9000
+#define MAX_RECEIVED_BUFFER 8000
 #define OUTPUT_FILE "procTestB/data/receive.txt"
 
 // Décommenter cette ligne pour activer l'affichage de trace dans stderr
@@ -29,11 +30,7 @@ int main(int argc, char **argv)
 	// Variable utilisées pour les mesures de performances
 	uint8_t perf_debit = 0;
 	uint8_t perf_latence = 0;
-	uint32_t cpt_msg = 0;
-	double perf_duration = 0; 
-	struct timeval perf_start_time;
-	struct timeval perf_end_time;
-
+	
 	if (argc > 1) {
 		if (!strcmp(argv[1], "-d")) {
 			// test de perf de débit
@@ -93,6 +90,16 @@ int main(int argc, char **argv)
 	 */
 	} else {
 		char receiveBuffer[MAX_RECEIVED_BUFFER];
+		// variable pour les tests de perf
+		uint32_t cpt_msg = 0;
+		double perf_duration = 0; 
+		struct timeval perf_start_time;
+		struct timeval perf_end_time;
+		long double latence = 0;
+		uint64_t send_date = 0;
+		uint64_t receive_date = 0;
+		uint32_t send_date_sec= 0 ;
+		int send_date_usec= 0 ;
 
 		FILE* fOUT;
 		if ((fOUT = fopen(OUTPUT_FILE,"w")) == NULL)
@@ -105,7 +112,7 @@ int main(int argc, char **argv)
 
 		fprintf(stderr, "--------------------------------------------------\n");
 		fprintf(stderr, "Le processus B est en marche\n");
-		if (perf_debit == 0 || perf_latence == 0) {
+		if (perf_debit == 0 && perf_latence == 0) {
 			fprintf(stderr, "Écriture des messages reçus  dans %s\n", OUTPUT_FILE);
 		}
 		fprintf(stderr, "Pressez Ctrl+C pour quitter\n");
@@ -115,34 +122,81 @@ int main(int argc, char **argv)
 		fprintf(stderr,"### PROC B: pid: %d)\n\n", getpid());
 #endif
 		while(1){
-			if (perf_debit == 1) {
-				if (cpt_msg < NB_MSG_1KB - 1) {
+#ifdef DEBUG
+			fprintf(stderr, "cpt = %u\n", cpt_msg);
+#endif
+			if (perf_debit == 0 && perf_latence == 0) {
+				// le canal va faire un déliver et on recoie les données avec read
+				read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
+			} else if (perf_debit == 1) {
+				// Cas du test de débit
+				if (cpt_msg < NB_MSG_KB) {
 					// le canal va faire un déliver et on recoie les données avec read
 					read(tube_CanaltoB[0], receiveBuffer, LINE_SIZE);
-					if (cpt_msg == 0) {
+					cpt_msg ++;
+					if (cpt_msg == 1) {
+						// déclenchement du chrono
 						gettimeofday(&perf_start_time, NULL);
 					} 
 				} else {
+					// arrêt du chrono
 					gettimeofday(&perf_end_time, NULL);
-					perf_duration = compute_perf(&perf_start_time, &perf_end_time);
+					// Calcule de la durée 
+					perf_duration = compute_duration(&perf_start_time, &perf_end_time);
 					fprintf(stderr, "---------------------------------------------\n");
 					fprintf(stderr, "---- Durée test débit = %.4f sec       ----\n", perf_duration);
-					fprintf(stderr, "---- Débit mesuré     = %.3f MB/s       ----\n",(NB_MSG_1KB*LINE_SIZE)/(perf_duration*1000000.0));
+					fprintf(stderr, "---- Débit mesuré     = %.3f MB/s       ----\n",(NB_MSG_KB*LINE_SIZE)/(perf_duration*1000000.0));
 					fprintf(stderr, "---------------------------------------------\n");
 					fflush(stderr);
 					break;
 				}
-				cpt_msg ++;
-			} else { 
-				// le canal va faire un déliver et on recoie les données avec read
-				read(tube_CanaltoB[0], receiveBuffer, MAX_RECEIVED_BUFFER);
-			}
+			} else if (perf_latence == 1) {
+				if (cpt_msg < NB_MSG_LATENCE) {
+					// Get the message
+					read(tube_CanaltoB[0], receiveBuffer, LINE_SIZE);
+					cpt_msg ++;
+					
+				
+					// Calcul de l'heure d'arrivé
+					gettimeofday(&perf_end_time, NULL);
+					receive_date = perf_end_time.tv_sec * 1000000 + 
+									perf_end_time.tv_usec;
+										
+					// Récupération de la date d'envoi
+					receiveBuffer[10] = '\0';
+					send_date_sec = atol(receiveBuffer);
+					perf_start_time.tv_sec = send_date_sec;
+					receiveBuffer[17] = '\0';
+					send_date_usec = atol(receiveBuffer+11);
+					perf_start_time.tv_usec = send_date_usec;
+
+					send_date = perf_start_time.tv_sec * 1000000 + 
+									perf_start_time.tv_usec;
+
+					latence += receive_date - send_date;
+#ifdef DEBUG
+					fprintf(stderr, "message= --%s--\n",receiveBuffer);
+					fprintf(stderr, "receive_date = %"PRIu64"\n",receive_date);
+					fprintf(stderr, "send date : sec = %u , usec = %d\n", send_date_sec, send_date_usec);
+					fprintf(stderr, "send_date = %"PRIu64"\n",send_date);
+#endif 
+				} else {
+					fprintf(stderr, "---------------------------------------------\n");
+					fprintf(stderr, "----   Latence de l'envoi d'un message   ----\n");
+					fprintf(stderr, "----        de  taille %d KB/s :        ----\n", MAX_RECEIVED_BUFFER/1000);
+					fprintf(stderr, "----             %.4Lfms                  ----\n", latence / (NB_MSG_LATENCE*1000.0));
+					fprintf(stderr, "---------------------------------------------\n");
+					fflush(stderr);
+					break;
+
+				}
+			} 
 #ifdef DEBUG
 			fprintf(stderr, "#### B à reçu : %s",receiveBuffer);
 			fprintf(stderr, "-------------------------------------------\n");
 			fflush(stderr);
 #endif
-			if (perf_debit == 0 || perf_latence == 0) {
+			if (perf_debit == 0 && perf_latence == 0) {
 				fwrite(receiveBuffer, sizeof(*receiveBuffer), 
 						strlen(receiveBuffer), fOUT);
 				fflush(fOUT);
@@ -150,7 +204,10 @@ int main(int argc, char **argv)
 			}
 			
 		}
+		fprintf(stderr, "### PROC B : TEST FINISHED\n");
+		fprintf(stderr, "### Pressez Ctrl+C pour quitter\n");
 		fclose(fOUT);
+		close(tube_CanaltoB[0]);
 		wait(NULL);
 	}
 	return 0;

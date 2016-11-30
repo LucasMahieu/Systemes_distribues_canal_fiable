@@ -10,7 +10,8 @@
 #include <sys/time.h>
 #include <sys/types.h> 
 
-#define NB_MSG_1KB 25000
+#define NB_MSG_KB 25000
+#define NB_MSG_LATENCE 1
 
 #endif
 

@@ -10,7 +10,7 @@
 /**
  * Cette fonction retourne le temps écoulé entre start et end en milli seconde
  */
-double compute_perf(struct timeval *start, struct timeval *end)
+double compute_duration(struct timeval *start, struct timeval *end)
 {
 	double elapsed_time = 0.0;
 
