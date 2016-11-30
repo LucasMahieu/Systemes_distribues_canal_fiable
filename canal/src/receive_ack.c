@@ -11,7 +11,6 @@
 // Thread de réception des ack du canal A
 void* receive_ack(void* arg)
 {
-
 	WaitAckElement* pTable = (WaitAckElement*)(((ArgAck*)(arg))->windowTable);
 	uint32_t* pReSend = (uint32_t*)(((ArgAck*)(arg))->iReSend);
 	uint32_t iReSendCpy = 0;

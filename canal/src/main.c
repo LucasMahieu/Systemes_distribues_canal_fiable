@@ -104,10 +104,6 @@ int main(int argc, char **argv)
 			if (receive_pkt(s, &p, (struct sockaddr*)&si_other, &slen) == 0)
 					bug("Error receive_pkt");
 
-			//if ((recv_len = recvfrom(s, &p, sizeof(p), 0,
-			//	(struct sockaddr *) &si_other, &slen)) == -1)
-			
-
 #ifdef DEBUG 
 			fprintf(stderr, "### CANAL de B ########\n");
 			fprintf(stderr, "L'en tête est : (num=%u, ack=%u)\n",
