@@ -16,7 +16,8 @@
 #include <time.h>
 // to poll the pipe
 #include <poll.h>
-
+// Pour sig kill
+#include <signal.h>
 
 #define MAX_RECEIVED_BUFFER 8000
 
@@ -34,13 +35,16 @@ int main(int argc, char **argv)
 	// Il faut deux tube pour communiquer dans les 2 sens
 	int tube_DtoCanal[2];
 	int tube_CanaltoD[2];
-	puts("Création d'un tube\n");
 	/* pipe 1*/
-	if (pipe(tube_DtoCanal) != 0) bug("Erreur dans pipe 1 \n");
+	if (pipe(tube_DtoCanal) != 0)
+		bug("Erreur dans pipe 1 \n");
 	/* pipe 2*/
-	if (pipe(tube_CanaltoD) != 0) bug("Erreur dans pipe 2 \n");
+	if (pipe(tube_CanaltoD) != 0)
+		bug("Erreur dans pipe 2 \n");
+
 	canal_pid = fork();    
-	if (canal_pid == -1) bug("Erreur dans fork \n");
+	if (canal_pid == -1)
+		bug("Erreur dans fork \n");
 
 	// processus fils: lance le canal pour pouvoir recevoir des données
 	if (canal_pid == 0){
@@ -52,14 +56,8 @@ int main(int argc, char **argv)
 		close(tube_CanaltoD[0]);
 		close(tube_DtoCanal[1]);
 
-		// sleep(2);
-		// fprintf(stdout, "salut\n");
-		// sleep(2);
-		// fprintf(stdout, "toi \n");
-
-
 		// liste qui servira au execvp
-		char* arg_list[] = {"./myCanal", "0", NULL};
+		char* arg_list[] = {"./myCanal", "0", "-f", NULL};
 		// On lance le myCanal
 		execv("myCanal", arg_list);
 		
@@ -71,19 +69,17 @@ int main(int argc, char **argv)
 		char message[MAX_RECEIVED_BUFFER];
 		memcpy(message, "Yes I am!", strlen("Yes I am!"));
 
-
 		dup2(tube_DtoCanal[1],1);
 		dup2(tube_CanaltoD[0],0);
 
 		// Ferme les pipes inutiles
 		close(tube_CanaltoD[1]);
 		close(tube_DtoCanal[0]);
-
 #ifdef DEBUG
 		fprintf(stderr,"### PROC D: pid: %d)\n\n", getpid());
 #endif
+		int cpt_life = 10;
 		// Petit dodo pour être sur que tout le monde soit bien prêt pour le test
-		int i=0;
 		sleep(1);
 		while(1){
 			// le canal va faire un déliver et on recoit les données avec read
@@ -102,10 +98,12 @@ int main(int argc, char **argv)
 			fprintf(stderr, "On fait un signe de vie\n");
 			fprintf(stderr, "\n");
 			fprintf(stdout, "%s\n", message);
+			//cpt_life --;
 			
 		}
 		close(tube_DtoCanal[1]);
 		close(tube_CanaltoD[0]);
+		kill(canal_pid, SIGINT);
 		wait(NULL);
 	}
 	return 0;

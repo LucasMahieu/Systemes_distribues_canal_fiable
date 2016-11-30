@@ -18,7 +18,7 @@ typedef struct {
 	Sockaddr_in si_other;
 	unsigned int slen;
 	Socket s;
-
+	uint8_t fault_detector;
 } ArgAck;
 
 extern pthread_mutex_t mutex_iReSend;

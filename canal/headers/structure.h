@@ -13,7 +13,7 @@
 // IP of the process that receives messages
 #define SERVER "127.0.0.1"	
 //The port on which to listen for incoming data
-#define PORT 8889
+#define PORT 8888
 
 //Max length of buffer (for messages)
 #define MAX_MES_LEN 8000
