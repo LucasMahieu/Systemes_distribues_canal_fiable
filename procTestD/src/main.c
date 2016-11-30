@@ -98,6 +98,8 @@ int main(int argc, char **argv)
 			fprintf(stderr, "On fait un signe de vie\n");
 			fprintf(stderr, "\n");
 			fprintf(stdout, "%s\n", message);
+			fflush(stdout);
+			fprintf(stderr, "%s pas bon\n", message);
 			//cpt_life --;
 			
 		}
