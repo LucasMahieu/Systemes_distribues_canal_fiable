@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <inttypes.h>
+#include <signal.h>
 
 #include "bug.h"
 #include "perf.h"
@@ -208,6 +209,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "### Pressez Ctrl+C pour quitter\n");
 		fclose(fOUT);
 		close(tube_CanaltoB[0]);
+		kill(canal_pid, SIGINT);
 		wait(NULL);
 	}
 	return 0;

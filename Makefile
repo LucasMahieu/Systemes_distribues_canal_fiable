@@ -49,14 +49,11 @@ Ad: $(PROG0)
 Bd: $(PROG1)
 	nice -n 200 ./myProcTestB -d
 
-exeMyCanal: $(PROG2)
-	./myCanal
+Af: $(PROG3)
+	nice -n 200 ./myProcTestC
 
-exeC: $(PROG3)
-	./myProcTestC
-
-exeD: $(PROG4)
-	./myProcTestD
+Bf: $(PROG4)
+	nice -n 200 ./myProcTestD 
 
 ### Compilation of "canal fiable" dependencies
 $(PROG0): $(PROG0_DIR)$(SRC_DIR)*.c 
