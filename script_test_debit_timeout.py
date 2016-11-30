@@ -4,24 +4,29 @@ import matplotlib.pyplot as plt
 
 
 # Creation du fichier de log
-logFile = "logFile"
+logFile = "logFileTimeOut"
 subprocess.call("rm " + logFile, shell=True)
 subprocess.call("touch " + logFile, shell=True)
 
 
 
+# nombre de valeurs pour faire la moyenne
+moyenne = 2
+
 #detecter la ligne a changer
-detect_line = "#define WINDOW_SIZE"
+detect_line = "#define TIMEOUT_WAIT_ACK"
 # Values for the window
-from_value = 1
-to_value = 5000
-jump = 100
+from_value = 1000
+to_value = 10000
+jump = 5000
 
 
 
 # Pour les courbes
 X = list()
+tempY = list()
 Y = list()
+
 
 
 #time to wait between to tests
@@ -51,14 +56,15 @@ for i in range(from_value, to_value+1, jump):
 
     subprocess.call("make clean", shell=True)
     subprocess.call("make", shell=True)
-    subprocess.call("echo value=" + str(i) + " >> " + logFile, shell=True)
-    procA = subprocess.Popen("make exeA", shell=True, close_fds=True)
-    procB = subprocess.Popen("make exeB 2>> " + logFile, shell=True, close_fds=True)
-    subprocess.call("sleep " + str(TTW2), shell=True)
-    # subprocess.call(["kill", "-9", "%d" % procA.pid])
-    # subprocess.call(["kill", "-9", "%d" % procB.pid])
-    subprocess.call("killall myCanal", shell=True)
-    subprocess.call("sleep " + str(TTW1), shell=True)
+    for j in range(moyenne):
+        subprocess.call("echo \" \ntimeout, iteration = " + str(i) + ", " + str(j) + "\" >> " + logFile, shell=True)
+        procA = subprocess.Popen("make exeA", shell=True, close_fds=True)
+        procB = subprocess.Popen("make exeB 2>> " + logFile, shell=True, close_fds=True)
+        subprocess.call("sleep " + str(TTW2), shell=True)
+        # subprocess.call(["kill", "-9", "%d" % procA.pid])
+        # subprocess.call(["kill", "-9", "%d" % procB.pid])
+        subprocess.call("killall myCanal", shell=True)
+        subprocess.call("sleep " + str(TTW1), shell=True)
 
 
 # On detecte la ligne avec la chaine :
@@ -66,11 +72,22 @@ detect_line3 = "bit mesur"
 # On plot
 for line in fileinput.input("./" + logFile, inplace=True): 
     if detect_line3 in line:
-        Y.append(int(line[line.find("=")+2:line.find(".")]))
+        tempY.append(int(line[line.find("=")+2:line.find(".")]))
     print(line[:-1])
 
 print("Valeurs de la courbe : ")
 print(X)
+
+cnt=0
+tmpSum=0
+for i in tempY:
+    cnt += 1
+    tmpSum += i
+    if cnt==moyenne:
+        Y.append(tmpSum/moyenne)
+        cnt = 0
+        tmpSum=0
+
 print(Y)
 
 plt.plot(X, Y)
